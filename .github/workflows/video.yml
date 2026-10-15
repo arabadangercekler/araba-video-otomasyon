@@ -1,0 +1,38 @@
+name: Otomatik Video Üret
+
+on:
+  workflow_dispatch:   # Manuel çalıştırma için
+  schedule:
+    - cron: '0 10 * * 1,4'   # Pazartesi ve Perşembe saat 10:00 (UTC)
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Repo'yu indir
+        uses: actions/checkout@v4
+
+      - name: Python kur
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Gerekli paketleri yükle
+        run: |
+          pip install -r requirements.txt
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Video üret
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python generate_video.py
+
+      - name: Videoyu kaydet
+        uses: actions/upload-artifact@v4
+        with:
+          name: uretilen-video
+          path: video.mp4
+          retention-days: 7
