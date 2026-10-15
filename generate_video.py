@@ -3,7 +3,7 @@ import google.generativeai as genai
 import edge_tts
 import asyncio
 import requests
-from moviepy.editor import *
+from moviepy import ImageClip, AudioFileClip, concatenate_videoclips
 from PIL import Image
 import textwrap
 
