@@ -30,7 +30,7 @@ def generate_script(topic):
     return response.text.strip()
 
 async def text_to_speech(text, output_file):
-    communicate = edge_tts.Communicate(text, "tr-TR-MustafaNeural")
+    communicate = edge_tts.Communicate(text, "tr-TR-EmelNeural")
     await communicate.save(output_file)
 
 def download_images(query, count=12):
