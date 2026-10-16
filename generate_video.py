@@ -9,24 +9,24 @@ from moviepy import ImageClip, AudioFileClip, concatenate_videoclips
 # === AYARLAR ===
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 MODEL_NAME = "gemini-3.8-flash"
-VOICE = "tr-TR-EmelNeural"  # Geçici olarak çalışan ses (sonra erkek ses ayarlarız)
+VOICE = "tr-TR-EmelNeural"
 
 model = genai.GenerativeModel(MODEL_NAME)
 
 def generate_script(topic):
     prompt = f"""
-Sen profesyonel bir Türk YouTube senaristisin.
+Sen profesyonel bir Türk YouTube Shorts senaristisin.
 Konu: {topic}
 
-7-8 dakikalık, izleyiciyi baştan sona tutacak bir "Mit mi Gerçek mi" videosu senaryosu yaz.
+Sadece 40-50 saniyelik çok güçlü bir Shorts senaryosu yaz.
 
 Kurallar:
-- İlk 5 saniyede çok güçlü bir kanca (hook) olsun
-- Merak uyandıran bir dil kullan
-- 4-5 ana bilgi ver
-- Sonunda net "Mit" veya "Gerçek" damgası vur
-- Sadece konuşma metnini yaz, başka bir şey ekleme
+- İlk 3 saniyede izleyiciyi kilitle
+- Çok net ve hızlı anlat
+- Sonunda net "Mit" veya "Gerçek" de
+- Sadece konuşma metnini yaz
 - Türkçe yaz
+- Maksimum 130 kelime
 """
     for i in range(6):
         try:
@@ -36,18 +36,19 @@ Kurallar:
                 return text
         except Exception as e:
             print(f"Senaryo hatası (deneme {i+1}): {e}")
-            time.sleep(25)
+            time.sleep(20)
     return None
 
 async def text_to_speech(text, output_file):
     communicate = edge_tts.Communicate(text, VOICE)
     await communicate.save(output_file)
 
-def download_images(count=12):
+def download_images(count=8):
     images = []
     for i in range(count):
         try:
-            url = f"https://picsum.photos/1280/720?random={i+10}"
+            # Dikey görsel (Shorts için)
+            url = f"https://picsum.photos/720/1280?random={i+50}"
             img_data = requests.get(url, timeout=10).content
             filename = f"img_{i}.jpg"
             with open(filename, "wb") as f:
@@ -67,7 +68,7 @@ def create_video(audio_file, image_files, output="video.mp4"):
         try:
             clip = (ImageClip(img)
                     .with_duration(clip_duration)
-                    .resized(height=720))
+                    .resized(height=1280))  # Dikey
             clips.append(clip)
         except:
             continue
@@ -83,22 +84,22 @@ def create_video(audio_file, image_files, output="video.mp4"):
 
 def main():
     topic = "BMW arabalar 200 bin km sonra sürekli arıza yapar miti"
-    print("1. Senaryo yazılıyor...")
+    print("1. Shorts senaryosu yazılıyor...")
     script = generate_script(topic)
     
     if not script:
-        print("Senaryo oluşturulamadı, çıkılıyor.")
+        print("Senaryo oluşturulamadı.")
         return
 
     print("2. Ses oluşturuluyor...")
     asyncio.run(text_to_speech(script, "ses.mp3"))
 
     print("3. Görseller indiriliyor...")
-    images = download_images(12)
+    images = download_images(8)
 
-    print("4. Video oluşturuluyor...")
+    print("4. Shorts videosu oluşturuluyor...")
     create_video("ses.mp3", images)
-    print("Video hazır: video.mp4")
+    print("Shorts hazır: video.mp4")
 
 if __name__ == "__main__":
     main()
