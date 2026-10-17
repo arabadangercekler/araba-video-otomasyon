@@ -8,6 +8,7 @@ from moviepy import ImageClip, AudioFileClip, concatenate_videoclips
 
 # === AYARLAR ===
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+PIXABAY_KEY = os.environ["PIXABAY_API_KEY"]
 MODEL_NAME = "gemini-3.8-flash"
 VOICE = "tr-TR-EmelNeural"
 
@@ -28,7 +29,7 @@ Kurallar:
 - Türkçe yaz
 - Maksimum 130 kelime
 """
-    for i in range(6):
+    for i in range(5):
         try:
             response = model.generate_content(prompt)
             text = response.text.strip()
@@ -43,19 +44,26 @@ async def text_to_speech(text, output_file):
     communicate = edge_tts.Communicate(text, VOICE)
     await communicate.save(output_file)
 
-def download_images(count=8):
+def download_car_images(count=8):
     images = []
-    for i in range(count):
-        try:
-            # Dikey görsel (Shorts için)
-            url = f"https://picsum.photos/720/1280?random={i+50}"
-            img_data = requests.get(url, timeout=10).content
+    url = f"https://pixabay.com/api/?key={PIXABAY_KEY}&q=car+automobile&image_type=photo&orientation=vertical&per_page={count}&safesearch=true"
+    
+    try:
+        r = requests.get(url, timeout=15)
+        data = r.json()
+        hits = data.get("hits", [])
+        
+        for i, hit in enumerate(hits[:count]):
+            img_url = hit["largeImageURL"]
+            img_data = requests.get(img_url, timeout=10).content
             filename = f"img_{i}.jpg"
             with open(filename, "wb") as f:
                 f.write(img_data)
             images.append(filename)
-        except:
-            pass
+            print(f"Görsel indirildi: {i+1}")
+    except Exception as e:
+        print(f"Görsel indirme hatası: {e}")
+    
     return images
 
 def create_video(audio_file, image_files, output="video.mp4"):
@@ -68,7 +76,7 @@ def create_video(audio_file, image_files, output="video.mp4"):
         try:
             clip = (ImageClip(img)
                     .with_duration(clip_duration)
-                    .resized(height=1280))  # Dikey
+                    .resized(height=1280))
             clips.append(clip)
         except:
             continue
@@ -94,8 +102,12 @@ def main():
     print("2. Ses oluşturuluyor...")
     asyncio.run(text_to_speech(script, "ses.mp3"))
 
-    print("3. Görseller indiriliyor...")
-    images = download_images(8)
+    print("3. Araba görselleri indiriliyor...")
+    images = download_car_images(8)
+
+    if not images:
+        print("Görsel indirilemedi.")
+        return
 
     print("4. Shorts videosu oluşturuluyor...")
     create_video("ses.mp3", images)
