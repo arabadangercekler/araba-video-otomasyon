@@ -1,9 +1,9 @@
 name: Otomatik Video Üret
 
 on:
-  workflow_dispatch:   # Manuel çalıştırma için
+  workflow_dispatch:
   schedule:
-    - cron: '0 10 * * 1,4'   # Pazartesi ve Perşembe saat 10:00 (UTC)
+    - cron: '0 10 * * 1,4'
 
 jobs:
   generate:
@@ -28,6 +28,7 @@ jobs:
       - name: Video üret
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
         run: python generate_video.py
 
       - name: Videoyu kaydet
