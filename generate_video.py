@@ -102,7 +102,6 @@ def create_hook(duration=3.5):
         stroke_width=5,
         method="caption",
         size=(W - 100, None),
-        font="DejaVu-Sans"
     )
     
     def scale(t):
@@ -133,7 +132,6 @@ def create_subtitles(script, total_duration):
             stroke_width=3,
             method="caption",
             size=(W - 120, None),
-            font="DejaVu-Sans"
         )
         txt = txt.with_start(i * dur).with_duration(dur * 0.92)
         txt = txt.with_position(("center", H - 320))
