@@ -102,7 +102,7 @@ def create_hook(duration=3.5):
         stroke_width=5,
         method="caption",
         size=(W - 100, None),
-        font="DejaVu-Sans-Bold"
+        font="DejaVu-Sans"
     )
     
     def scale(t):
