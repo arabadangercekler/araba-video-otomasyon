@@ -1,6 +1,7 @@
 import os
 import time
 import asyncio
+import random
 import requests
 import google.generativeai as genai
 import edge_tts
@@ -11,6 +12,9 @@ genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 PIXABAY_KEY = os.environ["PIXABAY_API_KEY"]
 MODEL_NAME = "gemini-3.8-flash"
 VOICE = "tr-TR-EmelNeural"
+
+# Shorts boyutu
+W, H = 1080, 1920
 
 model = genai.GenerativeModel(MODEL_NAME)
 
@@ -46,7 +50,6 @@ async def text_to_speech(text, output_file):
 
 def download_car_images(count=10):
     images = []
-    # Daha spesifik arama
     query = "BMW+car+OR+BMW+vehicle"
     url = f"https://pixabay.com/api/?key={PIXABAY_KEY}&q={query}&image_type=photo&orientation=vertical&per_page={count}&safesearch=true"
     
@@ -70,6 +73,31 @@ def download_car_images(count=10):
     
     return images
 
+def make_ken_burns_clip(img_path, duration):
+    """Zoom + hafif sağa/sola kaydırma"""
+    clip = ImageClip(img_path)
+    
+    # Ekranı tamamen dolduracak şekilde büyüt
+    clip = clip.resized(height=H * 1.15)  # biraz büyük tut ki kaydırma payı olsun
+    
+    # Rastgele yön: sağa veya sola
+    direction = random.choice([-1, 1])
+    
+    def position(t):
+        # Yavaş zoom
+        progress = t / duration
+        # Hafif yatay kaydırma
+        x = direction * 40 * progress
+        y = -30 * progress   # hafif yukarı da kaydır
+        return (x, y)
+    
+    clip = clip.with_position(position)
+    clip = clip.with_duration(duration)
+    
+    # Son boyuta kırp
+    clip = clip.cropped(width=W, height=H, x_center=clip.w/2, y_center=clip.h/2)
+    return clip
+
 def create_video(audio_file, image_files, output="video.mp4"):
     audio = AudioFileClip(audio_file)
     duration = audio.duration
@@ -78,11 +106,7 @@ def create_video(audio_file, image_files, output="video.mp4"):
     clips = []
     for img in image_files:
         try:
-            # Zoom efekti (Ken Burns)
-            clip = (ImageClip(img)
-                    .with_duration(clip_duration)
-                    .resized(height=1280)
-                    .resized(lambda t: 1 + 0.06 * t))  # yavaş zoom
+            clip = make_ken_burns_clip(img, clip_duration)
             clips.append(clip)
         except Exception as e:
             print(f"Clip hatası: {e}")
@@ -94,6 +118,7 @@ def create_video(audio_file, image_files, output="video.mp4"):
     video = concatenate_videoclips(clips, method="compose")
     video = video.with_audio(audio)
     video = video.with_duration(duration)
+    video = video.resized((W, H))  # kesin 9:16
     video.write_videofile(output, fps=24, codec="libx264", audio_codec="aac", logger=None)
     return output
 
