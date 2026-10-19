@@ -44,9 +44,11 @@ async def text_to_speech(text, output_file):
     communicate = edge_tts.Communicate(text, VOICE)
     await communicate.save(output_file)
 
-def download_car_images(count=8):
+def download_car_images(count=10):
     images = []
-    url = f"https://pixabay.com/api/?key={PIXABAY_KEY}&q=car+automobile&image_type=photo&orientation=vertical&per_page={count}&safesearch=true"
+    # Daha spesifik arama
+    query = "BMW+car+OR+BMW+vehicle"
+    url = f"https://pixabay.com/api/?key={PIXABAY_KEY}&q={query}&image_type=photo&orientation=vertical&per_page={count}&safesearch=true"
     
     try:
         r = requests.get(url, timeout=15)
@@ -54,7 +56,9 @@ def download_car_images(count=8):
         hits = data.get("hits", [])
         
         for i, hit in enumerate(hits[:count]):
-            img_url = hit["largeImageURL"]
+            img_url = hit.get("largeImageURL") or hit.get("webformatURL")
+            if not img_url:
+                continue
             img_data = requests.get(img_url, timeout=10).content
             filename = f"img_{i}.jpg"
             with open(filename, "wb") as f:
@@ -74,11 +78,14 @@ def create_video(audio_file, image_files, output="video.mp4"):
     clips = []
     for img in image_files:
         try:
+            # Zoom efekti (Ken Burns)
             clip = (ImageClip(img)
                     .with_duration(clip_duration)
-                    .resized(height=1280))
+                    .resized(height=1280)
+                    .resized(lambda t: 1 + 0.06 * t))  # yavaş zoom
             clips.append(clip)
-        except:
+        except Exception as e:
+            print(f"Clip hatası: {e}")
             continue
 
     if not clips:
@@ -102,8 +109,8 @@ def main():
     print("2. Ses oluşturuluyor...")
     asyncio.run(text_to_speech(script, "ses.mp3"))
 
-    print("3. Araba görselleri indiriliyor...")
-    images = download_car_images(8)
+    print("3. BMW görselleri indiriliyor...")
+    images = download_car_images(10)
 
     if not images:
         print("Görsel indirilemedi.")
