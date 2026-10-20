@@ -18,7 +18,7 @@ PIXABAY_KEY = os.environ["PIXABAY_API_KEY"]
 MODEL_NAME = "gemini-3.8-flash"
 
 # Erkek ses
-VOICE = "tr-TR-AhmetNeural"
+VOICE = "tr-TR-MustafaNeural"
 
 W, H = 1080, 1920
 model = genai.GenerativeModel(MODEL_NAME)
