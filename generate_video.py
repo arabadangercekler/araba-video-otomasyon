@@ -16,7 +16,7 @@ from moviepy import (
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 PIXABAY_KEY = os.environ["PIXABAY_API_KEY"]
 MODEL_NAME = "gemini-3.8-flash"
-VOICE = "tr-TR-EmelNeural"          # stabil çalışan ses
+VOICE = "tr-TR-EmelNeural"
 W, H = 1080, 1920
 
 model = genai.GenerativeModel(MODEL_NAME)
@@ -50,12 +50,10 @@ Kurallar:
 
 # ===================== SES =====================
 async def text_to_speech(text, output_file):
-    # Daha canlı ve tempolu ayar
     communicate = edge_tts.Communicate(
         text,
         VOICE,
-        rate="+14%",      # daha hızlı
-        pitch="+1Hz"      # hafif canlı
+        rate="+12%"
     )
     await communicate.save(output_file)
     print("Ses oluşturuldu")
@@ -114,39 +112,32 @@ def download_images_for_sentences(sentences):
             images.append(img)
     return images
 
-# ===================== KLİPLER =====================
+# ===================== HAREKET (DÜZELTİLMİŞ) =====================
 def make_moving_clip(img_path, duration):
-    clip = ImageClip(img_path).resized(height=int(H * 1.4))
-    direction = random.choice([-1, 1])
+    clip = ImageClip(img_path)
+    clip = clip.resized(height=int(H * 1.2))
 
-    def pos(t):
-        p = t / max(duration, 0.1)
-        # Daha belirgin hareket
-        x = direction * 110 * p
-        y = -80 * p
-        return (x, y)
+    def zoom(t):
+        # Yavaş ve belirgin zoom
+        return 1.0 + 0.22 * (t / max(duration, 0.1))
 
-    clip = clip.with_position(pos).with_duration(duration)
+    clip = clip.resized(zoom)
+    clip = clip.with_duration(duration)
     clip = clip.cropped(width=W, height=H, x_center=clip.w/2, y_center=clip.h/2)
     return clip
 
+# ===================== YAZILAR =====================
 def create_hook(duration=2.6):
     txt = TextClip(
         text="BMW 200.000 KM SONRA\nBOZULUR MU?",
-        font_size=58,
+        font_size=56,
         color="white",
         stroke_color="black",
         stroke_width=4,
         method="caption",
         size=(W - 70, None)
     )
-
-    def scale(t):
-        if t < 0.35:
-            return 0.7 + (t / 0.35) * 0.4
-        return 1.05
-
-    return txt.resized(scale).with_duration(duration).with_position("center")
+    return txt.with_duration(duration).with_position("center")
 
 def create_subtitles(sentences, total_duration):
     if not sentences:
@@ -155,19 +146,19 @@ def create_subtitles(sentences, total_duration):
     clips = []
 
     for i, sentence in enumerate(sentences):
-        short = sentence if len(sentence) < 50 else sentence[:47] + "..."
+        short = sentence if len(sentence) < 48 else sentence[:45] + "..."
         wrapped = textwrap.fill(short, width=20)
 
         txt = TextClip(
             text=wrapped,
-            font_size=40,
+            font_size=38,
             color="white",
             stroke_color="black",
             stroke_width=3,
             method="caption",
             size=(W - 80, None)
         )
-        txt = txt.with_start(i * dur).with_duration(max(dur * 0.82, 0.6))
+        txt = txt.with_start(i * dur).with_duration(max(dur * 0.8, 0.6))
         txt = txt.with_position(("center", H - 380))
         clips.append(txt)
 
