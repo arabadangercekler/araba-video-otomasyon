@@ -50,11 +50,7 @@ Kurallar:
 
 # ===================== SES =====================
 async def text_to_speech(text, output_file):
-    communicate = edge_tts.Communicate(
-        text,
-        VOICE,
-        rate="+12%"
-    )
+    communicate = edge_tts.Communicate(text, VOICE, rate="+13%")
     await communicate.save(output_file)
     print("Ses oluşturuldu")
 
@@ -80,7 +76,7 @@ def download_image(query, index):
     url = (
         f"https://pixabay.com/api/?key={PIXABAY_KEY}"
         f"&q={query}&image_type=photo&orientation=vertical"
-        f"&per_page=8&safesearch=true"
+        f"&per_page=10&safesearch=true"
     )
     try:
         r = requests.get(url, timeout=12)
@@ -112,45 +108,37 @@ def download_images_for_sentences(sentences):
             images.append(img)
     return images
 
-# ===================== HAREKET (ZOOM + KAYMA) =====================
-def make_moving_clip(img_path, duration):
+# ===================== HAREKET (ÇEŞİTLİ) =====================
+def make_moving_clip(img_path, duration, move_type=0):
     clip = ImageClip(img_path)
-    clip = clip.resized(height=int(H * 1.35))
+    clip = clip.resized(height=int(H * 1.45))
 
-    direction = random.choice([-1, 1])
-
-    def transform(t):
-        p = t / max(duration, 0.1)
-        # Hem zoom hem kayma
-        scale = 1.0 + 0.18 * p
-        x = direction * 90 * p
-        y = -50 * p
-        return scale, x, y
-
-    def make_frame(t):
-        scale, x, y = transform(t)
-        # MoviePy'de pozisyon + scale için basit yöntem
-        return clip.get_frame(t)
-
-    # Daha stabil yöntem: zoom + position
     def zoom(t):
-        return 1.0 + 0.20 * (t / max(duration, 0.1))
-
-    clip = clip.resized(zoom)
-    clip = clip.with_duration(duration)
-
-    def pos(t):
         p = t / max(duration, 0.1)
-        x = direction * 100 * p
-        y = -60 * p
-        return (x, y)
+        return 1.0 + 0.28 * p          # daha güçlü zoom
+
+    clip = clip.resized(zoom).with_duration(duration)
+
+    # Farklı hareket tipleri
+    if move_type == 0:          # sağa kay
+        def pos(t):
+            p = t / max(duration, 0.1)
+            return (120 * p, -40 * p)
+    elif move_type == 1:        # sola kay
+        def pos(t):
+            p = t / max(duration, 0.1)
+            return (-120 * p, -40 * p)
+    else:                       # sadece zoom + hafif yukarı
+        def pos(t):
+            p = t / max(duration, 0.1)
+            return (0, -70 * p)
 
     clip = clip.with_position(pos)
     clip = clip.cropped(width=W, height=H, x_center=clip.w/2, y_center=clip.h/2)
     return clip
 
 # ===================== YAZILAR =====================
-def create_hook(duration=2.6):
+def create_hook(duration=2.5):
     txt = TextClip(
         text="BMW 200.000 KM SONRA\nBOZULUR MU?",
         font_size=56,
@@ -196,28 +184,30 @@ def create_video(script, audio_file, images, sentences, output="video.mp4"):
     audio = AudioFileClip(audio_file)
     duration = audio.duration
 
-    while len(images) < len(sentences):
+    # Daha fazla görsel → daha hızlı değişim
+    target_count = max(len(sentences) + 2, 8)
+    while len(images) < target_count:
         images.append(random.choice(images))
-    images = images[:len(sentences)]
+    images = images[:target_count]
 
     clip_dur = duration / len(images)
     img_clips = []
 
-    for img in images:
+    for i, img in enumerate(images):
         try:
-            img_clips.append(make_moving_clip(img, clip_dur))
+            move_type = i % 3          # 0 sağa, 1 sola, 2 zoom ağırlıklı
+            img_clips.append(make_moving_clip(img, clip_dur, move_type))
         except Exception as e:
             print(f"Clip hatası: {e}")
 
     if not img_clips:
         raise Exception("Görsel klipler oluşmadı")
 
-    # Basit geçiş için crossfade denemesi (çok kısa)
     video = concatenate_videoclips(img_clips, method="compose")
     video = video.with_audio(audio).with_duration(duration)
 
     final = CompositeVideoClip(
-        [video, create_hook(2.6)] + create_subtitles(sentences, duration),
+        [video, create_hook(2.5)] + create_subtitles(sentences, duration),
         size=(W, H)
     ).with_duration(duration)
 
