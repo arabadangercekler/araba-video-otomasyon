@@ -16,11 +16,9 @@ from moviepy import (
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 PIXABAY_KEY = os.environ["PIXABAY_API_KEY"]
 MODEL_NAME = "gemini-3.8-flash"
-
-# Erkek ses
-VOICE = "tr-TR-AhmetNeural"
-
+VOICE = "tr-TR-EmelNeural"          # stabil çalışan ses
 W, H = 1080, 1920
+
 model = genai.GenerativeModel(MODEL_NAME)
 
 # ===================== SENARYO =====================
@@ -52,27 +50,15 @@ Kurallar:
 
 # ===================== SES =====================
 async def text_to_speech(text, output_file):
-    """
-    Erkek ses + daha canlı ayarlar
-    rate: hız ( + = hızlı )
-    pitch: ton ( + = ince, - = kalın )
-    """
-    try:
-        communicate = edge_tts.Communicate(
-            text,
-            VOICE,
-            rate="+12%",
-            pitch="+0Hz"
-        )
-        await communicate.save(output_file)
-        print("Ses oluşturuldu (AhmetNeural)")
-    except Exception as e:
-        print(f"AhmetNeural hata: {e}")
-        print("Yedek sese geçiliyor...")
-        # Yedek kadın ses (çalıştığı kesin)
-        communicate = edge_tts.Communicate(text, "tr-TR-EmelNeural", rate="+12%")
-        await communicate.save(output_file)
-        print("Yedek ses kullanıldı")
+    # Daha canlı ve tempolu ayar
+    communicate = edge_tts.Communicate(
+        text,
+        VOICE,
+        rate="+14%",      # daha hızlı
+        pitch="+1Hz"      # hafif canlı
+    )
+    await communicate.save(output_file)
+    print("Ses oluşturuldu")
 
 # ===================== GÖRSEL =====================
 def extract_keywords(sentence):
@@ -80,25 +66,23 @@ def extract_keywords(sentence):
     base = ["BMW", "car"]
 
     if any(w in s for w in ["yağ", "oil"]):
-        base += ["engine", "oil"]
+        base += ["engine"]
     elif any(w in s for w in ["silindir", "motor"]):
         base += ["engine", "motor"]
     elif any(w in s for w in ["duman", "smoke"]):
-        base += ["exhaust", "engine"]
+        base += ["exhaust"]
     elif any(w in s for w in ["km", "kilometre", "milyon"]):
-        base += ["dashboard", "odometer"]
-    elif any(w in s for w in ["fren"]):
-        base += ["brake", "wheel"]
+        base += ["dashboard"]
     else:
         base += ["vehicle"]
 
-    return "+".join(base[:4])
+    return "+".join(base[:3])
 
 def download_image(query, index):
     url = (
         f"https://pixabay.com/api/?key={PIXABAY_KEY}"
         f"&q={query}&image_type=photo&orientation=vertical"
-        f"&per_page=10&safesearch=true"
+        f"&per_page=8&safesearch=true"
     )
     try:
         r = requests.get(url, timeout=12)
@@ -132,33 +116,34 @@ def download_images_for_sentences(sentences):
 
 # ===================== KLİPLER =====================
 def make_moving_clip(img_path, duration):
-    clip = ImageClip(img_path).resized(height=int(H * 1.35))
+    clip = ImageClip(img_path).resized(height=int(H * 1.4))
     direction = random.choice([-1, 1])
 
     def pos(t):
         p = t / max(duration, 0.1)
-        x = direction * 100 * p
-        y = -70 * p
+        # Daha belirgin hareket
+        x = direction * 110 * p
+        y = -80 * p
         return (x, y)
 
     clip = clip.with_position(pos).with_duration(duration)
     clip = clip.cropped(width=W, height=H, x_center=clip.w/2, y_center=clip.h/2)
     return clip
 
-def create_hook(duration=2.8):
+def create_hook(duration=2.6):
     txt = TextClip(
         text="BMW 200.000 KM SONRA\nBOZULUR MU?",
-        font_size=60,
+        font_size=58,
         color="white",
         stroke_color="black",
         stroke_width=4,
         method="caption",
-        size=(W - 80, None)
+        size=(W - 70, None)
     )
 
     def scale(t):
-        if t < 0.4:
-            return 0.75 + (t / 0.4) * 0.35
+        if t < 0.35:
+            return 0.7 + (t / 0.35) * 0.4
         return 1.05
 
     return txt.resized(scale).with_duration(duration).with_position("center")
@@ -170,20 +155,20 @@ def create_subtitles(sentences, total_duration):
     clips = []
 
     for i, sentence in enumerate(sentences):
-        short = sentence if len(sentence) < 55 else sentence[:52] + "..."
-        wrapped = textwrap.fill(short, width=22)
+        short = sentence if len(sentence) < 50 else sentence[:47] + "..."
+        wrapped = textwrap.fill(short, width=20)
 
         txt = TextClip(
             text=wrapped,
-            font_size=42,
+            font_size=40,
             color="white",
             stroke_color="black",
             stroke_width=3,
             method="caption",
-            size=(W - 90, None)
+            size=(W - 80, None)
         )
-        txt = txt.with_start(i * dur).with_duration(max(dur * 0.85, 0.7))
-        txt = txt.with_position(("center", H - 400))
+        txt = txt.with_start(i * dur).with_duration(max(dur * 0.82, 0.6))
+        txt = txt.with_position(("center", H - 380))
         clips.append(txt)
 
     return clips
@@ -217,7 +202,7 @@ def create_video(script, audio_file, images, sentences, output="video.mp4"):
     video = video.with_audio(audio).with_duration(duration)
 
     final = CompositeVideoClip(
-        [video, create_hook(2.8)] + create_subtitles(sentences, duration),
+        [video, create_hook(2.6)] + create_subtitles(sentences, duration),
         size=(W, H)
     ).with_duration(duration)
 
@@ -234,7 +219,7 @@ def main():
         print("Senaryo yok")
         return
 
-    print("2. Ses (erkek)...")
+    print("2. Ses...")
     asyncio.run(text_to_speech(script, "ses.mp3"))
 
     print("3. Cümleler...")
