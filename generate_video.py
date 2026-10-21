@@ -112,17 +112,40 @@ def download_images_for_sentences(sentences):
             images.append(img)
     return images
 
-# ===================== HAREKET (DÜZELTİLMİŞ) =====================
+# ===================== HAREKET (ZOOM + KAYMA) =====================
 def make_moving_clip(img_path, duration):
     clip = ImageClip(img_path)
-    clip = clip.resized(height=int(H * 1.2))
+    clip = clip.resized(height=int(H * 1.35))
 
+    direction = random.choice([-1, 1])
+
+    def transform(t):
+        p = t / max(duration, 0.1)
+        # Hem zoom hem kayma
+        scale = 1.0 + 0.18 * p
+        x = direction * 90 * p
+        y = -50 * p
+        return scale, x, y
+
+    def make_frame(t):
+        scale, x, y = transform(t)
+        # MoviePy'de pozisyon + scale için basit yöntem
+        return clip.get_frame(t)
+
+    # Daha stabil yöntem: zoom + position
     def zoom(t):
-        # Yavaş ve belirgin zoom
-        return 1.0 + 0.22 * (t / max(duration, 0.1))
+        return 1.0 + 0.20 * (t / max(duration, 0.1))
 
     clip = clip.resized(zoom)
     clip = clip.with_duration(duration)
+
+    def pos(t):
+        p = t / max(duration, 0.1)
+        x = direction * 100 * p
+        y = -60 * p
+        return (x, y)
+
+    clip = clip.with_position(pos)
     clip = clip.cropped(width=W, height=H, x_center=clip.w/2, y_center=clip.h/2)
     return clip
 
@@ -189,6 +212,7 @@ def create_video(script, audio_file, images, sentences, output="video.mp4"):
     if not img_clips:
         raise Exception("Görsel klipler oluşmadı")
 
+    # Basit geçiş için crossfade denemesi (çok kısa)
     video = concatenate_videoclips(img_clips, method="compose")
     video = video.with_audio(audio).with_duration(duration)
 
