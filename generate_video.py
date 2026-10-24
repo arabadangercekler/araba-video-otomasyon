@@ -53,29 +53,32 @@ async def text_to_speech(text, output_file):
 
 def extract_keywords(sentence):
     s = sentence.lower()
-    base = ["BMW", "car"]
+    # Daha sıkı arama - saçma detay fotoğraflarını azalt
+    base = ["BMW", "car", "automobile"]
     if any(w in s for w in ["yağ", "oil", "silindir", "motor"]):
-        base += ["engine"]
+        base = ["BMW", "engine", "car"]
     elif any(w in s for w in ["duman", "smoke"]):
-        base += ["exhaust"]
+        base = ["BMW", "car", "exhaust"]
     elif any(w in s for w in ["km", "kilometre"]):
-        base += ["dashboard"]
-    else:
-        base += ["vehicle"]
+        base = ["BMW", "car", "dashboard"]
     return "+".join(base[:3])
 
 def download_image(query, index):
     url = (
         f"https://pixabay.com/api/?key={PIXABAY_KEY}"
         f"&q={query}&image_type=photo&orientation=vertical"
-        f"&per_page=10&safesearch=true"
+        f"&per_page=12&safesearch=true"
     )
     try:
         r = requests.get(url, timeout=12)
         hits = r.json().get("hits", [])
         if not hits:
             return None
-        hit = random.choice(hits)
+        # En yüksek çözünürlüklü olanları tercih et
+        hits = sorted(hits, key=lambda x: x.get("imageWidth", 0) * x.get("imageHeight", 0), reverse=True)
+        hit = hits[0] if hits else None
+        if not hit:
+            return None
         img_url = hit.get("largeImageURL") or hit.get("webformatURL")
         if not img_url:
             return None
@@ -102,7 +105,6 @@ def download_images_for_sentences(sentences):
 
 def make_moving_clip(img_path, duration, move_type=0):
     bg = ColorClip(size=(W, H), color=(0, 0, 0)).with_duration(duration)
-
     clip = ImageClip(img_path)
 
     ratio = clip.w / max(clip.h, 1)
@@ -112,7 +114,7 @@ def make_moving_clip(img_path, duration, move_type=0):
     else:
         clip = clip.resized(width=W)
 
-    clip = clip.resized(1.35)
+    clip = clip.resized(1.3)
 
     def zoom(t):
         p = t / max(duration, 0.1)
@@ -123,36 +125,34 @@ def make_moving_clip(img_path, duration, move_type=0):
     if move_type == 0:
         def pos(t):
             p = t / max(duration, 0.1)
-            return (50 * p, -25 * p)
+            return (40 * p, -20 * p)
     elif move_type == 1:
         def pos(t):
             p = t / max(duration, 0.1)
-            return (-50 * p, -25 * p)
+            return (-40 * p, -20 * p)
     else:
         def pos(t):
             p = t / max(duration, 0.1)
-            return (0, -40 * p)
+            return (0, -35 * p)
 
     clip = clip.with_position(pos)
     clip = clip.cropped(width=W, height=H, x_center=clip.w/2, y_center=clip.h/2)
 
-    final = CompositeVideoClip([bg, clip], size=(W, H))
-    final = final.with_duration(duration)
-    final = final.resized((W, H))
-    return final
+    final = CompositeVideoClip([bg, clip], size=(W, H)).with_duration(duration)
+    return final.resized((W, H))
 
 def create_hook(duration=2.5):
     txt = TextClip(
         text="BMW 200.000 KM SONRA\nBOZULUR MU?",
-        font_size=42,
+        font_size=40,
         color="white",
         stroke_color="black",
         stroke_width=3,
         method="caption",
-        size=(W - 140, None),
+        size=(W - 160, None),
         font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     )
-    return txt.with_duration(duration).with_position(("center", 220))
+    return txt.with_duration(duration).with_position(("center", 200))
 
 def create_subtitles(sentences, total_duration):
     if not sentences:
@@ -160,20 +160,20 @@ def create_subtitles(sentences, total_duration):
     dur = total_duration / len(sentences)
     clips = []
     for i, sentence in enumerate(sentences):
-        short = sentence if len(sentence) < 40 else sentence[:37] + "..."
-        wrapped = textwrap.fill(short, width=17)
+        short = sentence if len(sentence) < 38 else sentence[:35] + "..."
+        wrapped = textwrap.fill(short, width=16)
         txt = TextClip(
             text=wrapped,
-            font_size=28,
+            font_size=26,
             color="white",
             stroke_color="black",
             stroke_width=2,
             method="caption",
-            size=(W - 120, None),
+            size=(W - 140, None),
             font="/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
         )
         txt = txt.with_start(i * dur).with_duration(max(dur * 0.8, 0.6))
-        txt = txt.with_position(("center", H - 360))
+        txt = txt.with_position(("center", H - 340))
         clips.append(txt)
     return clips
 
@@ -196,34 +196,23 @@ def create_video(script, audio_file, images, sentences, output="video.mp4"):
     for i, img in enumerate(images):
         try:
             clip = make_moving_clip(img, clip_dur, i % 3)
-            clip = clip.resized((W, H))
-            img_clips.append(clip)
+            img_clips.append(clip.resized((W, H)))
         except Exception as e:
             print(f"Clip hatası: {e}")
 
     if not img_clips:
         raise Exception("Görsel klipler oluşmadı")
 
-    video = concatenate_videoclips(img_clips, method="compose")
-    video = video.resized((W, H))
+    video = concatenate_videoclips(img_clips, method="compose").resized((W, H))
     video = video.with_audio(audio).with_duration(duration)
 
     final = CompositeVideoClip(
         [video, create_hook(2.5)] + create_subtitles(sentences, duration),
         size=(W, H)
-    )
-    final = final.with_duration(duration)
-    final = final.resized((W, H))
+    ).with_duration(duration).resized((W, H))
 
     print(f"Final boyut: {final.w}x{final.h}")
-
-    final.write_videofile(
-        output,
-        fps=24,
-        codec="libx264",
-        audio_codec="aac",
-        logger=None
-    )
+    final.write_videofile(output, fps=24, codec="libx264", audio_codec="aac", logger=None)
     return output
 
 def main():
