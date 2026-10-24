@@ -101,12 +101,10 @@ def download_images_for_sentences(sentences):
     return images
 
 def make_moving_clip(img_path, duration, move_type=0):
-    # Tam siyah dikey arka plan
     bg = ColorClip(size=(W, H), color=(0, 0, 0)).with_duration(duration)
 
     clip = ImageClip(img_path)
 
-    # Cover: ekranı tamamen kapla
     ratio = clip.w / max(clip.h, 1)
     target = W / H
     if ratio > target:
@@ -140,22 +138,21 @@ def make_moving_clip(img_path, duration, move_type=0):
 
     final = CompositeVideoClip([bg, clip], size=(W, H))
     final = final.with_duration(duration)
-    # Boyutu zorla
     final = final.resized((W, H))
     return final
 
 def create_hook(duration=2.5):
     txt = TextClip(
         text="BMW 200.000 KM SONRA\nBOZULUR MU?",
-        font_size=46,
+        font_size=42,
         color="white",
         stroke_color="black",
-        stroke_width=4,
+        stroke_width=3,
         method="caption",
-        size=(W - 120, None),
+        size=(W - 140, None),
         font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     )
-    return txt.with_duration(duration).with_position(("center", 240))
+    return txt.with_duration(duration).with_position(("center", 220))
 
 def create_subtitles(sentences, total_duration):
     if not sentences:
@@ -167,16 +164,16 @@ def create_subtitles(sentences, total_duration):
         wrapped = textwrap.fill(short, width=17)
         txt = TextClip(
             text=wrapped,
-            font_size=30,
+            font_size=28,
             color="white",
             stroke_color="black",
-            stroke_width=3,
+            stroke_width=2,
             method="caption",
-            size=(W - 100, None),
+            size=(W - 120, None),
             font="/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
         )
         txt = txt.with_start(i * dur).with_duration(max(dur * 0.8, 0.6))
-        txt = txt.with_position(("center", H - 380))
+        txt = txt.with_position(("center", H - 360))
         clips.append(txt)
     return clips
 
@@ -199,7 +196,6 @@ def create_video(script, audio_file, images, sentences, output="video.mp4"):
     for i, img in enumerate(images):
         try:
             clip = make_moving_clip(img, clip_dur, i % 3)
-            # Her klipte boyutu zorla
             clip = clip.resized((W, H))
             img_clips.append(clip)
         except Exception as e:
