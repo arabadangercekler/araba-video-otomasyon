@@ -9,7 +9,7 @@ import google.generativeai as genai
 import edge_tts
 from moviepy import (
     ImageClip, AudioFileClip, TextClip, CompositeVideoClip,
-    concatenate_videoclips
+    concatenate_videoclips, ColorClip
 )
 
 # ===================== AYARLAR =====================
@@ -58,7 +58,6 @@ async def text_to_speech(text, output_file):
 def extract_keywords(sentence):
     s = sentence.lower()
     base = ["BMW", "car"]
-
     if any(w in s for w in ["yağ", "oil"]):
         base += ["engine"]
     elif any(w in s for w in ["silindir", "motor"]):
@@ -69,7 +68,6 @@ def extract_keywords(sentence):
         base += ["dashboard"]
     else:
         base += ["vehicle"]
-
     return "+".join(base[:3])
 
 def download_image(query, index):
@@ -108,69 +106,80 @@ def download_images_for_sentences(sentences):
             images.append(img)
     return images
 
-# ===================== HAREKET + TAM DOLU EKRAN =====================
+# ===================== HAREKET + TAM 9:16 =====================
 def make_moving_clip(img_path, duration, move_type=0):
+    # Önce siyah tam ekran arka plan
+    bg = ColorClip(size=(W, H), color=(0, 0, 0)).with_duration(duration)
+
     clip = ImageClip(img_path)
 
-    # Ekranı TAM doldur (siyah bar kalmasın)
-    clip = clip.resized(height=H)
-    if clip.w < W:
+    # Cover yöntemi: ekranı tamamen kapla
+    img_ratio = clip.w / clip.h
+    target_ratio = W / H
+
+    if img_ratio > target_ratio:
+        # daha geniş → yüksekliğe göre ölçekle
+        clip = clip.resized(height=H)
+    else:
+        # daha dar → genişliğe göre ölçekle
         clip = clip.resized(width=W)
 
-    # Biraz fazla büyüt ki kaydırma payı olsun
-    clip = clip.resized(1.25)
+    # Hareket payı için biraz daha büyüt
+    clip = clip.resized(1.3)
 
     def zoom(t):
         p = t / max(duration, 0.1)
-        return 1.0 + 0.18 * p
+        return 1.0 + 0.15 * p
 
     clip = clip.resized(zoom).with_duration(duration)
 
     if move_type == 0:
         def pos(t):
             p = t / max(duration, 0.1)
-            return (80 * p, -30 * p)
+            return ("center", -40 * p)
     elif move_type == 1:
         def pos(t):
             p = t / max(duration, 0.1)
-            return (-80 * p, -30 * p)
+            return (-60 * p, "center")
     else:
         def pos(t):
             p = t / max(duration, 0.1)
-            return (0, -50 * p)
+            return (60 * p, "center")
 
     clip = clip.with_position(pos)
+
+    # Tam ekrana kırp
     clip = clip.cropped(width=W, height=H, x_center=clip.w/2, y_center=clip.h/2)
-    return clip
+
+    # Arka plan + görsel
+    final = CompositeVideoClip([bg, clip], size=(W, H)).with_duration(duration)
+    return final
 
 # ===================== YAZILAR =====================
 def create_hook(duration=2.5):
     txt = TextClip(
         text="BMW 200.000 KM SONRA\nBOZULUR MU?",
-        font_size=50,
+        font_size=48,
         color="white",
         stroke_color="black",
         stroke_width=4,
         method="caption",
-        size=(W - 100, None),
+        size=(W - 120, None),
         font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     )
-    # Daha yukarıda ve tam görünsün
-    return txt.with_duration(duration).with_position(("center", 280))
+    return txt.with_duration(duration).with_position(("center", 250))
 
 def create_subtitles(sentences, total_duration):
     if not sentences:
         return []
     dur = total_duration / len(sentences)
     clips = []
-
     for i, sentence in enumerate(sentences):
-        short = sentence if len(sentence) < 45 else sentence[:42] + "..."
+        short = sentence if len(sentence) < 42 else sentence[:39] + "..."
         wrapped = textwrap.fill(short, width=18)
-
         txt = TextClip(
             text=wrapped,
-            font_size=34,
+            font_size=32,
             color="white",
             stroke_color="black",
             stroke_width=3,
@@ -179,9 +188,8 @@ def create_subtitles(sentences, total_duration):
             font="/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
         )
         txt = txt.with_start(i * dur).with_duration(max(dur * 0.8, 0.6))
-        txt = txt.with_position(("center", H - 420))
+        txt = txt.with_position(("center", H - 400))
         clips.append(txt)
-
     return clips
 
 def split_sentences(script):
@@ -219,7 +227,13 @@ def create_video(script, audio_file, images, sentences, output="video.mp4"):
         size=(W, H)
     ).with_duration(duration)
 
-    final.write_videofile(output, fps=24, codec="libx264", audio_codec="aac", logger=None)
+    final.write_videofile(
+        output,
+        fps=24,
+        codec="libx264",
+        audio_codec="aac",
+        logger=None
+    )
     return output
 
 # ===================== ANA =====================
