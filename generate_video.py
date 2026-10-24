@@ -12,7 +12,6 @@ from moviepy import (
     concatenate_videoclips, ColorClip
 )
 
-# ===================== AYARLAR =====================
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 PIXABAY_KEY = os.environ["PIXABAY_API_KEY"]
 MODEL_NAME = "gemini-3.8-flash"
@@ -21,7 +20,6 @@ W, H = 1080, 1920
 
 model = genai.GenerativeModel(MODEL_NAME)
 
-# ===================== SENARYO =====================
 def generate_script(topic):
     prompt = f"""
 Sen profesyonel bir Türk YouTube Shorts senaristisin.
@@ -48,23 +46,19 @@ Kurallar:
             time.sleep(15)
     return None
 
-# ===================== SES =====================
 async def text_to_speech(text, output_file):
     communicate = edge_tts.Communicate(text, VOICE, rate="+13%")
     await communicate.save(output_file)
     print("Ses oluşturuldu")
 
-# ===================== GÖRSEL =====================
 def extract_keywords(sentence):
     s = sentence.lower()
     base = ["BMW", "car"]
-    if any(w in s for w in ["yağ", "oil"]):
+    if any(w in s for w in ["yağ", "oil", "silindir", "motor"]):
         base += ["engine"]
-    elif any(w in s for w in ["silindir", "motor"]):
-        base += ["engine", "motor"]
     elif any(w in s for w in ["duman", "smoke"]):
         base += ["exhaust"]
-    elif any(w in s for w in ["km", "kilometre", "milyon"]):
+    elif any(w in s for w in ["km", "kilometre"]):
         base += ["dashboard"]
     else:
         base += ["vehicle"]
@@ -106,60 +100,54 @@ def download_images_for_sentences(sentences):
             images.append(img)
     return images
 
-# ===================== HAREKET + TAM 9:16 =====================
 def make_moving_clip(img_path, duration, move_type=0):
-    # Önce siyah tam ekran arka plan
+    # Tam siyah dikey arka plan
     bg = ColorClip(size=(W, H), color=(0, 0, 0)).with_duration(duration)
 
     clip = ImageClip(img_path)
 
-    # Cover yöntemi: ekranı tamamen kapla
-    img_ratio = clip.w / clip.h
-    target_ratio = W / H
-
-    if img_ratio > target_ratio:
-        # daha geniş → yüksekliğe göre ölçekle
+    # Cover: ekranı tamamen kapla
+    ratio = clip.w / max(clip.h, 1)
+    target = W / H
+    if ratio > target:
         clip = clip.resized(height=H)
     else:
-        # daha dar → genişliğe göre ölçekle
         clip = clip.resized(width=W)
 
-    # Hareket payı için biraz daha büyüt
-    clip = clip.resized(1.3)
+    clip = clip.resized(1.35)
 
     def zoom(t):
         p = t / max(duration, 0.1)
-        return 1.0 + 0.15 * p
+        return 1.0 + 0.12 * p
 
     clip = clip.resized(zoom).with_duration(duration)
 
     if move_type == 0:
         def pos(t):
             p = t / max(duration, 0.1)
-            return ("center", -40 * p)
+            return (50 * p, -25 * p)
     elif move_type == 1:
         def pos(t):
             p = t / max(duration, 0.1)
-            return (-60 * p, "center")
+            return (-50 * p, -25 * p)
     else:
         def pos(t):
             p = t / max(duration, 0.1)
-            return (60 * p, "center")
+            return (0, -40 * p)
 
     clip = clip.with_position(pos)
-
-    # Tam ekrana kırp
     clip = clip.cropped(width=W, height=H, x_center=clip.w/2, y_center=clip.h/2)
 
-    # Arka plan + görsel
-    final = CompositeVideoClip([bg, clip], size=(W, H)).with_duration(duration)
+    final = CompositeVideoClip([bg, clip], size=(W, H))
+    final = final.with_duration(duration)
+    # Boyutu zorla
+    final = final.resized((W, H))
     return final
 
-# ===================== YAZILAR =====================
 def create_hook(duration=2.5):
     txt = TextClip(
         text="BMW 200.000 KM SONRA\nBOZULUR MU?",
-        font_size=48,
+        font_size=46,
         color="white",
         stroke_color="black",
         stroke_width=4,
@@ -167,7 +155,7 @@ def create_hook(duration=2.5):
         size=(W - 120, None),
         font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     )
-    return txt.with_duration(duration).with_position(("center", 250))
+    return txt.with_duration(duration).with_position(("center", 240))
 
 def create_subtitles(sentences, total_duration):
     if not sentences:
@@ -175,11 +163,11 @@ def create_subtitles(sentences, total_duration):
     dur = total_duration / len(sentences)
     clips = []
     for i, sentence in enumerate(sentences):
-        short = sentence if len(sentence) < 42 else sentence[:39] + "..."
-        wrapped = textwrap.fill(short, width=18)
+        short = sentence if len(sentence) < 40 else sentence[:37] + "..."
+        wrapped = textwrap.fill(short, width=17)
         txt = TextClip(
             text=wrapped,
-            font_size=32,
+            font_size=30,
             color="white",
             stroke_color="black",
             stroke_width=3,
@@ -188,7 +176,7 @@ def create_subtitles(sentences, total_duration):
             font="/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
         )
         txt = txt.with_start(i * dur).with_duration(max(dur * 0.8, 0.6))
-        txt = txt.with_position(("center", H - 400))
+        txt = txt.with_position(("center", H - 380))
         clips.append(txt)
     return clips
 
@@ -196,7 +184,6 @@ def split_sentences(script):
     parts = re.split(r'(?<=[.!?])\s+', script)
     return [p.strip() for p in parts if len(p.strip()) > 6] or [script]
 
-# ===================== VİDEO =====================
 def create_video(script, audio_file, images, sentences, output="video.mp4"):
     audio = AudioFileClip(audio_file)
     duration = audio.duration
@@ -211,8 +198,10 @@ def create_video(script, audio_file, images, sentences, output="video.mp4"):
 
     for i, img in enumerate(images):
         try:
-            move_type = i % 3
-            img_clips.append(make_moving_clip(img, clip_dur, move_type))
+            clip = make_moving_clip(img, clip_dur, i % 3)
+            # Her klipte boyutu zorla
+            clip = clip.resized((W, H))
+            img_clips.append(clip)
         except Exception as e:
             print(f"Clip hatası: {e}")
 
@@ -220,12 +209,17 @@ def create_video(script, audio_file, images, sentences, output="video.mp4"):
         raise Exception("Görsel klipler oluşmadı")
 
     video = concatenate_videoclips(img_clips, method="compose")
+    video = video.resized((W, H))
     video = video.with_audio(audio).with_duration(duration)
 
     final = CompositeVideoClip(
         [video, create_hook(2.5)] + create_subtitles(sentences, duration),
         size=(W, H)
-    ).with_duration(duration)
+    )
+    final = final.with_duration(duration)
+    final = final.resized((W, H))
+
+    print(f"Final boyut: {final.w}x{final.h}")
 
     final.write_videofile(
         output,
@@ -236,7 +230,6 @@ def create_video(script, audio_file, images, sentences, output="video.mp4"):
     )
     return output
 
-# ===================== ANA =====================
 def main():
     topic = "BMW arabalar 200 bin km sonra sürekli arıza yapar miti"
 
