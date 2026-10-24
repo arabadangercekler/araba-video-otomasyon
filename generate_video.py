@@ -108,47 +108,55 @@ def download_images_for_sentences(sentences):
             images.append(img)
     return images
 
-# ===================== HAREKET =====================
+# ===================== HAREKET + TAM DOLU EKRAN =====================
 def make_moving_clip(img_path, duration, move_type=0):
     clip = ImageClip(img_path)
-    clip = clip.resized(height=int(H * 1.4))
+
+    # Ekranı TAM doldur (siyah bar kalmasın)
+    clip = clip.resized(height=H)
+    if clip.w < W:
+        clip = clip.resized(width=W)
+
+    # Biraz fazla büyüt ki kaydırma payı olsun
+    clip = clip.resized(1.25)
 
     def zoom(t):
         p = t / max(duration, 0.1)
-        return 1.0 + 0.25 * p
+        return 1.0 + 0.18 * p
 
     clip = clip.resized(zoom).with_duration(duration)
 
     if move_type == 0:
         def pos(t):
             p = t / max(duration, 0.1)
-            return (110 * p, -35 * p)
+            return (80 * p, -30 * p)
     elif move_type == 1:
         def pos(t):
             p = t / max(duration, 0.1)
-            return (-110 * p, -35 * p)
+            return (-80 * p, -30 * p)
     else:
         def pos(t):
             p = t / max(duration, 0.1)
-            return (0, -65 * p)
+            return (0, -50 * p)
 
     clip = clip.with_position(pos)
     clip = clip.cropped(width=W, height=H, x_center=clip.w/2, y_center=clip.h/2)
     return clip
 
-# ===================== YAZILAR (FONT DÜZELTME) =====================
+# ===================== YAZILAR =====================
 def create_hook(duration=2.5):
     txt = TextClip(
         text="BMW 200.000 KM SONRA\nBOZULUR MU?",
-        font_size=54,
+        font_size=50,
         color="white",
         stroke_color="black",
         stroke_width=4,
         method="caption",
-        size=(W - 80, None),
+        size=(W - 100, None),
         font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     )
-    return txt.with_duration(duration).with_position("center")
+    # Daha yukarıda ve tam görünsün
+    return txt.with_duration(duration).with_position(("center", 280))
 
 def create_subtitles(sentences, total_duration):
     if not sentences:
@@ -157,21 +165,21 @@ def create_subtitles(sentences, total_duration):
     clips = []
 
     for i, sentence in enumerate(sentences):
-        short = sentence if len(sentence) < 48 else sentence[:45] + "..."
-        wrapped = textwrap.fill(short, width=20)
+        short = sentence if len(sentence) < 45 else sentence[:42] + "..."
+        wrapped = textwrap.fill(short, width=18)
 
         txt = TextClip(
             text=wrapped,
-            font_size=36,
+            font_size=34,
             color="white",
             stroke_color="black",
             stroke_width=3,
             method="caption",
-            size=(W - 90, None),
+            size=(W - 100, None),
             font="/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
         )
         txt = txt.with_start(i * dur).with_duration(max(dur * 0.8, 0.6))
-        txt = txt.with_position(("center", H - 380))
+        txt = txt.with_position(("center", H - 420))
         clips.append(txt)
 
     return clips
