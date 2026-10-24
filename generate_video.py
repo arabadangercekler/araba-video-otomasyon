@@ -108,45 +108,45 @@ def download_images_for_sentences(sentences):
             images.append(img)
     return images
 
-# ===================== HAREKET (ÇEŞİTLİ) =====================
+# ===================== HAREKET =====================
 def make_moving_clip(img_path, duration, move_type=0):
     clip = ImageClip(img_path)
-    clip = clip.resized(height=int(H * 1.45))
+    clip = clip.resized(height=int(H * 1.4))
 
     def zoom(t):
         p = t / max(duration, 0.1)
-        return 1.0 + 0.28 * p          # daha güçlü zoom
+        return 1.0 + 0.25 * p
 
     clip = clip.resized(zoom).with_duration(duration)
 
-    # Farklı hareket tipleri
-    if move_type == 0:          # sağa kay
+    if move_type == 0:
         def pos(t):
             p = t / max(duration, 0.1)
-            return (120 * p, -40 * p)
-    elif move_type == 1:        # sola kay
+            return (110 * p, -35 * p)
+    elif move_type == 1:
         def pos(t):
             p = t / max(duration, 0.1)
-            return (-120 * p, -40 * p)
-    else:                       # sadece zoom + hafif yukarı
+            return (-110 * p, -35 * p)
+    else:
         def pos(t):
             p = t / max(duration, 0.1)
-            return (0, -70 * p)
+            return (0, -65 * p)
 
     clip = clip.with_position(pos)
     clip = clip.cropped(width=W, height=H, x_center=clip.w/2, y_center=clip.h/2)
     return clip
 
-# ===================== YAZILAR =====================
+# ===================== YAZILAR (FONT DÜZELTME) =====================
 def create_hook(duration=2.5):
     txt = TextClip(
         text="BMW 200.000 KM SONRA\nBOZULUR MU?",
-        font_size=56,
+        font_size=54,
         color="white",
         stroke_color="black",
         stroke_width=4,
         method="caption",
-        size=(W - 70, None)
+        size=(W - 80, None),
+        font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     )
     return txt.with_duration(duration).with_position("center")
 
@@ -162,12 +162,13 @@ def create_subtitles(sentences, total_duration):
 
         txt = TextClip(
             text=wrapped,
-            font_size=38,
+            font_size=36,
             color="white",
             stroke_color="black",
             stroke_width=3,
             method="caption",
-            size=(W - 80, None)
+            size=(W - 90, None),
+            font="/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
         )
         txt = txt.with_start(i * dur).with_duration(max(dur * 0.8, 0.6))
         txt = txt.with_position(("center", H - 380))
@@ -184,7 +185,6 @@ def create_video(script, audio_file, images, sentences, output="video.mp4"):
     audio = AudioFileClip(audio_file)
     duration = audio.duration
 
-    # Daha fazla görsel → daha hızlı değişim
     target_count = max(len(sentences) + 2, 8)
     while len(images) < target_count:
         images.append(random.choice(images))
@@ -195,7 +195,7 @@ def create_video(script, audio_file, images, sentences, output="video.mp4"):
 
     for i, img in enumerate(images):
         try:
-            move_type = i % 3          # 0 sağa, 1 sola, 2 zoom ağırlıklı
+            move_type = i % 3
             img_clips.append(make_moving_clip(img, clip_dur, move_type))
         except Exception as e:
             print(f"Clip hatası: {e}")
