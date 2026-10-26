@@ -8,7 +8,7 @@ on:
 jobs:
   generate:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
 
     steps:
       - name: Repo'yu indir
@@ -21,8 +21,8 @@ jobs:
 
       - name: Gerekli paketleri yükle
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg fonts-dejavu fonts-dejavu-core
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-dejavu-core
           pip install -r requirements.txt
 
       - name: Video üret
