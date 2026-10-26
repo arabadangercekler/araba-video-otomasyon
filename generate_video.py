@@ -99,6 +99,27 @@ def make_clip(img_path, duration):
 
 def create_hook(duration=2.5):
     txt = TextClip(
+        text="BMW 200.000 KM SONRA\nBOZULUR MU?",
+        font_size=36,
+        color="white",
+        stroke_color="black",
+        stroke_width=3,
+        method="caption",
+        size=(W - 180, None),
+        font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+    )
+    return txt.with_duration(duration).with_position(("center", 180))
+
+def create_subtitles(script, total_duration):
+    sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script) if len(s.strip()) > 5]
+    if not sentences:
+        return []
+    dur = total_duration / len(sentences)
+    clips = []
+    for i, sentence in enumerate(sentences):
+        short = sentence if len(sentence) < 34 else sentence[:31] + "..."
+        wrapped = textwrap.fill(short, width=15)
+        txt = TextClip(
             text=wrapped,
             font_size=24,
             color="white",
@@ -109,31 +130,7 @@ def create_hook(duration=2.5):
             font="/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
         )
         txt = txt.with_start(i * dur).with_duration(max(dur * 0.85, 0.7))
-        txt = txt.with_position(("center", H - 300))
-    )
-    return txt.with_duration(duration).with_position(("center", 200))
-
-def create_subtitles(script, total_duration):
-    sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script) if len(s.strip()) > 5]
-    if not sentences:
-        return []
-    dur = total_duration / len(sentences)
-    clips = []
-    for i, sentence in enumerate(sentences):
-        short = sentence if len(sentence) < 36 else sentence[:33] + "..."
-        wrapped = textwrap.fill(short, width=16)
-        txt = TextClip(
-            text=wrapped,
-            font_size=26,
-            color="white",
-            stroke_color="black",
-            stroke_width=2,
-            method="caption",
-            size=(W - 140, None),
-            font="/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-        )
-        txt = txt.with_start(i * dur).with_duration(max(dur * 0.85, 0.7))
-        txt = txt.with_position(("center", H - 320))
+        txt = txt.with_position(("center", H - 280))
         clips.append(txt)
     return clips
 
