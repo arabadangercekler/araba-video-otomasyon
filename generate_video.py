@@ -99,14 +99,17 @@ def make_clip(img_path, duration):
 
 def create_hook(duration=2.5):
     txt = TextClip(
-        text="BMW 200.000 KM SONRA\nBOZULUR MU?",
-        font_size=40,
-        color="white",
-        stroke_color="black",
-        stroke_width=3,
-        method="caption",
-        size=(W - 150, None),
-        font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+            text=wrapped,
+            font_size=24,
+            color="white",
+            stroke_color="black",
+            stroke_width=2,
+            method="caption",
+            size=(W - 160, None),
+            font="/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+        )
+        txt = txt.with_start(i * dur).with_duration(max(dur * 0.85, 0.7))
+        txt = txt.with_position(("center", H - 300))
     )
     return txt.with_duration(duration).with_position(("center", 200))
 
