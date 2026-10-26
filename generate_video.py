@@ -29,13 +29,13 @@ Konu: {topic}
 
 Kurallar:
 - İlk 3 saniyede güçlü kanca
-- Net, tempolu ve anlaşılır konuş
+- Net ve anlaşılır konuş
 - Sonunda net "Mit" veya "Gerçek" de
 - Sadece konuşma metnini yaz
 - Türkçe
-- Maksimum 110 kelime
+- Maksimum 100 kelime
 """
-    for i in range(5):
+    for i in range(4):
         try:
             response = model.generate_content(prompt)
             text = response.text.strip()
@@ -43,99 +43,56 @@ Kurallar:
                 return text
         except Exception as e:
             print(f"Senaryo hatası ({i+1}): {e}")
-            time.sleep(15)
+            time.sleep(12)
     return None
 
 async def text_to_speech(text, output_file):
-    communicate = edge_tts.Communicate(text, VOICE, rate="+13%")
+    communicate = edge_tts.Communicate(text, VOICE, rate="+10%")
     await communicate.save(output_file)
     print("Ses oluşturuldu")
 
-def extract_keywords(sentence):
-    s = sentence.lower()
-    # Daha sıkı arama - saçma detay fotoğraflarını azalt
-    base = ["BMW", "car", "automobile"]
-    if any(w in s for w in ["yağ", "oil", "silindir", "motor"]):
-        base = ["BMW", "engine", "car"]
-    elif any(w in s for w in ["duman", "smoke"]):
-        base = ["BMW", "car", "exhaust"]
-    elif any(w in s for w in ["km", "kilometre"]):
-        base = ["BMW", "car", "dashboard"]
-    return "+".join(base[:3])
-
-def download_image(query, index):
+def download_images(count=8):
+    images = []
+    query = "BMW+car"
     url = (
         f"https://pixabay.com/api/?key={PIXABAY_KEY}"
         f"&q={query}&image_type=photo&orientation=vertical"
-        f"&per_page=12&safesearch=true"
+        f"&per_page={count}&safesearch=true"
     )
     try:
         r = requests.get(url, timeout=12)
         hits = r.json().get("hits", [])
-        if not hits:
-            return None
-        # En yüksek çözünürlüklü olanları tercih et
-        hits = sorted(hits, key=lambda x: x.get("imageWidth", 0) * x.get("imageHeight", 0), reverse=True)
-        hit = hits[0] if hits else None
-        if not hit:
-            return None
-        img_url = hit.get("largeImageURL") or hit.get("webformatURL")
-        if not img_url:
-            return None
-        data = requests.get(img_url, timeout=10).content
-        filename = f"img_{index}.jpg"
-        with open(filename, "wb") as f:
-            f.write(data)
-        return filename
+        for i, hit in enumerate(hits[:count]):
+            img_url = hit.get("largeImageURL") or hit.get("webformatURL")
+            if not img_url:
+                continue
+            data = requests.get(img_url, timeout=10).content
+            filename = f"img_{i}.jpg"
+            with open(filename, "wb") as f:
+                f.write(data)
+            images.append(filename)
+            print(f"Görsel {i+1} indirildi")
     except Exception as e:
         print(f"Görsel hatası: {e}")
-        return None
-
-def download_images_for_sentences(sentences):
-    images = []
-    for i, sentence in enumerate(sentences):
-        query = extract_keywords(sentence)
-        print(f"→ {query}")
-        img = download_image(query, i)
-        if not img:
-            img = download_image("BMW+car", i)
-        if img:
-            images.append(img)
     return images
 
-def make_moving_clip(img_path, duration, move_type=0):
+def make_clip(img_path, duration):
     bg = ColorClip(size=(W, H), color=(0, 0, 0)).with_duration(duration)
     clip = ImageClip(img_path)
 
-    ratio = clip.w / max(clip.h, 1)
-    target = W / H
-    if ratio > target:
+    # Ekranı doldur
+    if clip.w / clip.h > W / H:
         clip = clip.resized(height=H)
     else:
         clip = clip.resized(width=W)
 
-    clip = clip.resized(1.3)
+    clip = clip.resized(1.2)
 
     def zoom(t):
-        p = t / max(duration, 0.1)
-        return 1.0 + 0.12 * p
+        return 1.0 + 0.10 * (t / max(duration, 0.1))
 
     clip = clip.resized(zoom).with_duration(duration)
-
-    if move_type == 0:
-        def pos(t):
-            p = t / max(duration, 0.1)
-            return (40 * p, -20 * p)
-    elif move_type == 1:
-        def pos(t):
-            p = t / max(duration, 0.1)
-            return (-40 * p, -20 * p)
-    else:
-        def pos(t):
-            p = t / max(duration, 0.1)
-            return (0, -35 * p)
-
-    clip = clip.with_position(pos)
+    clip = clip.with_position("center")
     clip = clip.cropped(width=W, height=H, x_center=clip.w/2, y_center=clip.h/2)
 
     final = CompositeVideoClip([bg, clip], size=(W, H)).with_duration(duration)
@@ -149,18 +106,19 @@ def create_hook(duration=2.5):
         stroke_color="black",
         stroke_width=3,
         method="caption",
-        size=(W - 160, None),
+        size=(W - 150, None),
         font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     )
     return txt.with_duration(duration).with_position(("center", 200))
 
-def create_subtitles(sentences, total_duration):
+def create_subtitles(script, total_duration):
+    sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script) if len(s.strip()) > 5]
     if not sentences:
         return []
     dur = total_duration / len(sentences)
     clips = []
     for i, sentence in enumerate(sentences):
-        short = sentence if len(sentence) < 38 else sentence[:35] + "..."
+        short = sentence if len(sentence) < 36 else sentence[:33] + "..."
         wrapped = textwrap.fill(short, width=16)
         txt = TextClip(
             text=wrapped,
@@ -172,42 +130,27 @@ def create_subtitles(sentences, total_duration):
             size=(W - 140, None),
             font="/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
         )
-        txt = txt.with_start(i * dur).with_duration(max(dur * 0.8, 0.6))
-        txt = txt.with_position(("center", H - 340))
+        txt = txt.with_start(i * dur).with_duration(max(dur * 0.85, 0.7))
+        txt = txt.with_position(("center", H - 320))
         clips.append(txt)
     return clips
 
-def split_sentences(script):
-    parts = re.split(r'(?<=[.!?])\s+', script)
-    return [p.strip() for p in parts if len(p.strip()) > 6] or [script]
-
-def create_video(script, audio_file, images, sentences, output="video.mp4"):
+def create_video(script, audio_file, images, output="video.mp4"):
     audio = AudioFileClip(audio_file)
     duration = audio.duration
 
-    target_count = max(len(sentences) + 2, 8)
-    while len(images) < target_count:
+    while len(images) < 6:
         images.append(random.choice(images))
-    images = images[:target_count]
+    images = images[:8]
 
     clip_dur = duration / len(images)
-    img_clips = []
-
-    for i, img in enumerate(images):
-        try:
-            clip = make_moving_clip(img, clip_dur, i % 3)
-            img_clips.append(clip.resized((W, H)))
-        except Exception as e:
-            print(f"Clip hatası: {e}")
-
-    if not img_clips:
-        raise Exception("Görsel klipler oluşmadı")
+    img_clips = [make_clip(img, clip_dur) for img in images]
 
     video = concatenate_videoclips(img_clips, method="compose").resized((W, H))
     video = video.with_audio(audio).with_duration(duration)
 
     final = CompositeVideoClip(
-        [video, create_hook(2.5)] + create_subtitles(sentences, duration),
+        [video, create_hook(2.5)] + create_subtitles(script, duration),
         size=(W, H)
     ).with_duration(duration).resized((W, H))
 
@@ -227,18 +170,14 @@ def main():
     print("2. Ses...")
     asyncio.run(text_to_speech(script, "ses.mp3"))
 
-    print("3. Cümleler...")
-    sentences = split_sentences(script)
-    print(f"{len(sentences)} cümle")
-
-    print("4. Görseller...")
-    images = download_images_for_sentences(sentences)
-    if len(images) < 2:
+    print("3. Görseller...")
+    images = download_images(8)
+    if len(images) < 3:
         print("Görsel yetersiz")
         return
 
-    print("5. Video...")
-    create_video(script, "ses.mp3", images, sentences)
+    print("4. Video...")
+    create_video(script, "ses.mp3", images)
     print("Bitti → video.mp4")
 
 if __name__ == "__main__":
