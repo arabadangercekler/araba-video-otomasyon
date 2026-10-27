@@ -46,10 +46,25 @@ Basit kelimeler kullan. Sadece konuşma metni. Türkçe. Max 100 kelime.
     print("Yedek senaryo kullanılıyor")
     return FALLBACK_SCRIPT.strip()
 
-async def text_to_speech(text, output_file):
+async def text_to_speech_with_timing(text, output_file):
+    """Ses + kelime zamanlarını al"""
     communicate = edge_tts.Communicate(text, VOICE, rate="+10%")
-    await communicate.save(output_file)
-    print("Ses oluşturuldu")
+    word_timings = []
+
+    with open(output_file, "wb") as f:
+        async for chunk in communicate.stream():
+            if chunk["type"] == "audio":
+                f.write(chunk["data"])
+            elif chunk["type"] == "WordBoundary":
+                # offset ve duration mikrosaniye cinsinden
+                word_timings.append({
+                    "text": chunk["text"],
+                    "start": chunk["offset"] / 10_000_000,   # saniyeye çevir
+                    "duration": chunk["duration"] / 10_000_000
+                })
+
+    print(f"Ses oluşturuldu, {len(word_timings)} kelime zamanı alındı")
+    return word_timings
 
 def download_images(count=8):
     images = []
@@ -115,26 +130,22 @@ def create_hook(duration=2.5):
     )
     return txt.with_duration(duration).with_position(("center", 250))
 
-def create_subtitles(script, total_duration):
-    words = script.replace("\n", " ").split()
-    words = [w for w in words if w.strip()]
-    if not words:
+def create_subtitles_from_timing(word_timings):
+    """Gerçek ses zamanına göre altyazı (2'şer kelime grup)"""
+    if not word_timings:
         return []
 
-    # 2-3 kelimelik gruplar
-    groups = []
-    i = 0
-    while i < len(words):
-        group = " ".join(words[i:i+2])
-        groups.append(group)
-        i += 2
-
-    group_dur = total_duration / len(groups)
     clips = []
+    i = 0
+    while i < len(word_timings):
+        group = word_timings[i:i+2]
+        text = " ".join([w["text"] for w in group])
+        start = group[0]["start"]
+        end = group[-1]["start"] + group[-1]["duration"]
+        dur = max(end - start, 0.2)
 
-    for i, group in enumerate(groups):
         txt = TextClip(
-            text=group,
+            text=text,
             font_size=34,
             color="white",
             stroke_color="black",
@@ -142,13 +153,14 @@ def create_subtitles(script, total_duration):
             method="label",
             font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
         )
-        txt = txt.with_start(i * group_dur).with_duration(max(group_dur * 0.95, 0.35))
+        txt = txt.with_start(start).with_duration(dur)
         txt = txt.with_position(("center", 1380))
         clips.append(txt)
+        i += 2
 
     return clips
 
-def create_video(script, audio_file, images, output="video.mp4"):
+def create_video(script, audio_file, images, word_timings, output="video.mp4"):
     audio = AudioFileClip(audio_file)
     duration = audio.duration
 
@@ -163,7 +175,7 @@ def create_video(script, audio_file, images, output="video.mp4"):
     video = video.with_audio(audio).with_duration(duration)
 
     final = CompositeVideoClip(
-        [video, create_hook(2.5)] + create_subtitles(script, duration),
+        [video, create_hook(2.5)] + create_subtitles_from_timing(word_timings),
         size=(W, H)
     ).with_duration(duration).resized((W, H))
 
@@ -177,8 +189,8 @@ def main():
     print("1. Senaryo...")
     script = generate_script(topic)
 
-    print("2. Ses...")
-    asyncio.run(text_to_speech(script, "ses.mp3"))
+    print("2. Ses + zamanlama...")
+    word_timings = asyncio.run(text_to_speech_with_timing(script, "ses.mp3"))
 
     print("3. Görseller...")
     images = download_images(8)
@@ -187,7 +199,7 @@ def main():
         return
 
     print("4. Video...")
-    create_video(script, "ses.mp3", images)
+    create_video(script, "ses.mp3", images, word_timings)
     print("Bitti → video.mp4")
 
 if __name__ == "__main__":
