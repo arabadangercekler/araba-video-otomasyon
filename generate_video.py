@@ -33,10 +33,9 @@ def generate_script(topic):
 Sen profesyonel Türk YouTube Shorts senaristisin.
 Konu: {topic}
 40-50 saniyelik senaryo yaz.
-İlk 3 saniyede güçlü kanca olsun.
-Sonunda net "Gerçek" veya "Yalan" de.
-Basit kelimeler kullan. "Mit" deme.
-Sadece konuşma metni. Türkçe. Max 100 kelime.
+İlk 3 saniyede kanca olsun.
+Sonunda net Gerçek veya Yalan de.
+Basit kelimeler kullan. Sadece konuşma metni. Türkçe. Max 100 kelime.
 """)
         text = response.text.strip()
         if text and len(text) > 30:
@@ -106,39 +105,40 @@ def make_clip(img_path, duration, move_type=0):
 def create_hook(duration=2.5):
     txt = TextClip(
         text="BMW 200 BIN KM SONRA\nBOZULUR MU?",
-        font_size=40,
+        font_size=38,
         color="white",
         stroke_color="black",
         stroke_width=6,
         method="caption",
-        size=(900, None),
+        size=(850, None),
         font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     )
-    return txt.with_duration(duration).with_position(("center", 240))
+    return txt.with_duration(duration).with_position(("center", 250))
 
 def create_subtitles(script, total_duration):
-    sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script) if len(s.strip()) > 5]
-    if not sentences:
+    # Kelime kelime
+    words = script.replace("\n", " ").split()
+    words = [w for w in words if w.strip()]
+    if not words:
         return []
-    dur = total_duration / len(sentences)
+
+    word_dur = total_duration / len(words)
     clips = []
-    for i, sentence in enumerate(sentences):
-        short = sentence if len(sentence) < 30 else sentence[:27] + "..."
-        wrapped = textwrap.fill(short, width=13)
+
+    for i, word in enumerate(words):
         txt = TextClip(
-            text=wrapped,
-            font_size=32,
+            text=word,
+            font_size=36,
             color="white",
             stroke_color="black",
             stroke_width=5,
-            method="caption",
-            size=(900, None),
+            method="label",
             font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
         )
-        txt = txt.with_start(i * dur).with_duration(max(dur * 0.9, 0.8))
-        # YouTube alt alanı için güvenli konum
-        txt = txt.with_position(("center", 1350))
+        txt = txt.with_start(i * word_dur).with_duration(max(word_dur * 1.1, 0.25))
+        txt = txt.with_position(("center", 1400))
         clips.append(txt)
+
     return clips
 
 def create_video(script, audio_file, images, output="video.mp4"):
