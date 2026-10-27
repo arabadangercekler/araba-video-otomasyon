@@ -47,7 +47,6 @@ Basit kelimeler kullan. Sadece konuşma metni. Türkçe. Max 100 kelime.
     return FALLBACK_SCRIPT.strip()
 
 async def text_to_speech_with_timing(text, output_file):
-    """Ses + kelime zamanlarını al"""
     communicate = edge_tts.Communicate(text, VOICE, rate="+10%")
     word_timings = []
 
@@ -56,14 +55,13 @@ async def text_to_speech_with_timing(text, output_file):
             if chunk["type"] == "audio":
                 f.write(chunk["data"])
             elif chunk["type"] == "WordBoundary":
-                # offset ve duration mikrosaniye cinsinden
                 word_timings.append({
                     "text": chunk["text"],
-                    "start": chunk["offset"] / 10_000_000,   # saniyeye çevir
+                    "start": chunk["offset"] / 10_000_000,
                     "duration": chunk["duration"] / 10_000_000
                 })
 
-    print(f"Ses oluşturuldu, {len(word_timings)} kelime zamanı alındı")
+    print(f"Ses oluşturuldu, {len(word_timings)} kelime zamanı")
     return word_timings
 
 def download_images(count=8):
@@ -120,7 +118,7 @@ def make_clip(img_path, duration, move_type=0):
 def create_hook(duration=2.5):
     txt = TextClip(
         text="BMW 200 BIN KM SONRA\nBOZULUR MU?",
-        font_size=38,
+        font_size=40,
         color="white",
         stroke_color="black",
         stroke_width=6,
@@ -128,35 +126,61 @@ def create_hook(duration=2.5):
         size=(850, None),
         font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     )
-    return txt.with_duration(duration).with_position(("center", 250))
+    return txt.with_duration(duration).with_position(("center", 240))
 
-def create_subtitles_from_timing(word_timings):
-    """Gerçek ses zamanına göre altyazı (2'şer kelime grup)"""
-    if not word_timings:
-        return []
-
+def create_subtitles(script, total_duration, word_timings):
     clips = []
-    i = 0
-    while i < len(word_timings):
-        group = word_timings[i:i+2]
-        text = " ".join([w["text"] for w in group])
-        start = group[0]["start"]
-        end = group[-1]["start"] + group[-1]["duration"]
-        dur = max(end - start, 0.2)
 
+    # Önce gerçek zamanlama dene
+    if word_timings and len(word_timings) > 3:
+        print("Gerçek zamanlama kullanılıyor")
+        i = 0
+        while i < len(word_timings):
+            group = word_timings[i:i+2]
+            text = " ".join([w["text"] for w in group])
+            start = group[0]["start"]
+            end = group[-1]["start"] + group[-1]["duration"]
+            dur = max(end - start, 0.25)
+
+            txt = TextClip(
+                text=text,
+                font_size=36,
+                color="white",
+                stroke_color="black",
+                stroke_width=6,
+                method="label",
+                font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+            )
+            txt = txt.with_start(start).with_duration(dur)
+            txt = txt.with_position(("center", 1360))
+            clips.append(txt)
+            i += 2
+        return clips
+
+    # Yedek: eşit bölünmüş gruplar
+    print("Yedek altyazı kullanılıyor")
+    words = script.replace("\n", " ").split()
+    words = [w for w in words if w.strip()]
+    groups = []
+    i = 0
+    while i < len(words):
+        groups.append(" ".join(words[i:i+2]))
+        i += 2
+
+    group_dur = total_duration / max(len(groups), 1)
+    for i, group in enumerate(groups):
         txt = TextClip(
-            text=text,
-            font_size=34,
+            text=group,
+            font_size=36,
             color="white",
             stroke_color="black",
-            stroke_width=5,
+            stroke_width=6,
             method="label",
             font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
         )
-        txt = txt.with_start(start).with_duration(dur)
-        txt = txt.with_position(("center", 1380))
+        txt = txt.with_start(i * group_dur).with_duration(max(group_dur * 0.95, 0.3))
+        txt = txt.with_position(("center", 1360))
         clips.append(txt)
-        i += 2
 
     return clips
 
@@ -175,7 +199,7 @@ def create_video(script, audio_file, images, word_timings, output="video.mp4"):
     video = video.with_audio(audio).with_duration(duration)
 
     final = CompositeVideoClip(
-        [video, create_hook(2.5)] + create_subtitles_from_timing(word_timings),
+        [video, create_hook(2.5)] + create_subtitles(script, duration, word_timings),
         size=(W, H)
     ).with_duration(duration).resized((W, H))
 
