@@ -21,10 +21,10 @@ W, H = 1080, 1920
 model = genai.GenerativeModel(MODEL_NAME)
 
 FALLBACK_SCRIPT = """
-BMW 200 bin kilometre sonra bozulur mu? Çoğu kişi bunu mit sanıyor. 
+BMW 200 bin kilometre sonra bozulur mu? Birçok kişi bunu doğru sanıyor. 
 Aslında düzenli bakımlı bir BMW 300-400 bin kilometreyi rahat görüyor. 
 Asıl sorun ucuz yağ ve ihmal edilen bakımlar. 
-Sonuç: Mit. Bakım yapılırsa uzun ömürlü.
+Sonuç: Yalan. Bakım yapılırsa uzun ömürlü olur.
 """
 
 def generate_script(topic):
@@ -32,8 +32,11 @@ def generate_script(topic):
         response = model.generate_content(f"""
 Sen profesyonel Türk YouTube Shorts senaristisin.
 Konu: {topic}
-40-50 saniyelik senaryo yaz. İlk 3 saniyede kanca.
-Sonunda Mit veya Gerçek de. Sadece konuşma metni. Türkçe. Max 100 kelime.
+40-50 saniyelik senaryo yaz.
+İlk 3 saniyede güçlü kanca olsun.
+Sonunda net "Gerçek" veya "Yalan" de.
+Basit ve herkesin anlayacağı kelimeler kullan. "Mit" deme.
+Sadece konuşma metni yaz. Türkçe. Maksimum 100 kelime.
 """)
         text = response.text.strip()
         if text and len(text) > 30:
@@ -77,7 +80,6 @@ def make_clip(img_path, duration, move_type=0):
     bg = ColorClip(size=(W, H), color=(0, 0, 0)).with_duration(duration)
     clip = ImageClip(img_path)
 
-    # Ekranı rahat dolduracak şekilde büyüt
     if clip.w / clip.h > W / H:
         clip = clip.resized(height=int(H * 1.5))
     else:
@@ -85,23 +87,20 @@ def make_clip(img_path, duration, move_type=0):
 
     clip = clip.with_duration(duration)
 
-    # Zoom in veya zoom out
-    if move_type == 0:  # yakınlaş
+    if move_type == 0:
         def scale(t):
             p = t / max(duration, 0.1)
             return 1.0 + 0.20 * p
-    elif move_type == 1:  # uzaklaş
+    elif move_type == 1:
         def scale(t):
             p = t / max(duration, 0.1)
             return 1.20 - 0.20 * p
-    else:  # hafif yakınlaş
+    else:
         def scale(t):
             p = t / max(duration, 0.1)
             return 1.0 + 0.12 * p
 
     clip = clip.resized(scale)
-
-    # Ortadan sabit kırp (taşma olmasın)
     clip = clip.cropped(width=W, height=H, x_center=clip.w / 2, y_center=clip.h / 2)
 
     final = CompositeVideoClip([bg, clip.with_position("center")], size=(W, H))
@@ -109,16 +108,16 @@ def make_clip(img_path, duration, move_type=0):
 
 def create_hook(duration=2.5):
     txt = TextClip(
-        text="BMW 200.000 KM SONRA\nBOZULUR MU?",
-        font_size=36,
+        text="BMW 200 BIN KM SONRA\nBOZULUR MU?",
+        font_size=42,
         color="white",
         stroke_color="black",
-        stroke_width=3,
+        stroke_width=5,
         method="caption",
-        size=(W - 180, None),
+        size=(W - 160, None),
         font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     )
-    return txt.with_duration(duration).with_position(("center", 180))
+    return txt.with_duration(duration).with_position(("center", 220))
 
 def create_subtitles(script, total_duration):
     sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script) if len(s.strip()) > 5]
@@ -127,20 +126,21 @@ def create_subtitles(script, total_duration):
     dur = total_duration / len(sentences)
     clips = []
     for i, sentence in enumerate(sentences):
-        short = sentence if len(sentence) < 34 else sentence[:31] + "..."
-        wrapped = textwrap.fill(short, width=15)
+        short = sentence if len(sentence) < 32 else sentence[:29] + "..."
+        wrapped = textwrap.fill(short, width=14)
         txt = TextClip(
             text=wrapped,
-            font_size=24,
+            font_size=30,
             color="white",
             stroke_color="black",
-            stroke_width=2,
+            stroke_width=4,
             method="caption",
-            size=(W - 160, None),
-            font="/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+            size=(W - 140, None),
+            font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
         )
         txt = txt.with_start(i * dur).with_duration(max(dur * 0.85, 0.7))
-        txt = txt.with_position(("center", H - 280))
+        # YouTube alt bar için daha yukarı
+        txt = txt.with_position(("center", H - 480))
         clips.append(txt)
     return clips
 
@@ -168,7 +168,7 @@ def create_video(script, audio_file, images, output="video.mp4"):
     return output
 
 def main():
-    topic = "BMW arabalar 200 bin km sonra sürekli arıza yapar miti"
+    topic = "BMW arabalar 200 bin km sonra sürekli arıza yapar yalanı"
 
     print("1. Senaryo...")
     script = generate_script(topic)
