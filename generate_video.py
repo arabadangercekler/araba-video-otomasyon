@@ -28,15 +28,13 @@ Sonuç: Mit. Bakım yapılırsa uzun ömürlü.
 """
 
 def generate_script(topic):
-    prompt = f"""
-Sen profesyonel bir Türk YouTube Shorts senaristisin.
-Konu: {topic}
-40-50 saniyelik güçlü Shorts senaryosu yaz.
-İlk 3 saniyede kanca olsun. Sonunda Mit veya Gerçek de.
-Sadece konuşma metni. Türkçe. Maksimum 100 kelime.
-"""
     try:
-        response = model.generate_content(prompt)
+        response = model.generate_content(f"""
+Sen profesyonel Türk YouTube Shorts senaristisin.
+Konu: {topic}
+40-50 saniyelik senaryo yaz. İlk 3 saniyede kanca.
+Sonunda Mit veya Gerçek de. Sadece konuşma metni. Türkçe. Max 100 kelime.
+""")
         text = response.text.strip()
         if text and len(text) > 30:
             print("Gemini senaryosu alındı")
@@ -53,10 +51,9 @@ async def text_to_speech(text, output_file):
 
 def download_images(count=8):
     images = []
-    query = "BMW+car"
     url = (
         f"https://pixabay.com/api/?key={PIXABAY_KEY}"
-        f"&q={query}&image_type=photo&orientation=vertical"
+        f"&q=BMW+car&image_type=photo&orientation=vertical"
         f"&per_page={count}&safesearch=true"
     )
     try:
@@ -80,39 +77,35 @@ def make_clip(img_path, duration, move_type=0):
     bg = ColorClip(size=(W, H), color=(0, 0, 0)).with_duration(duration)
     clip = ImageClip(img_path)
 
-    # Ekranı doldur + hareket payı
+    # Ekranı rahat dolduracak şekilde büyüt
     if clip.w / clip.h > W / H:
-        clip = clip.resized(height=int(H * 1.4))
+        clip = clip.resized(height=int(H * 1.5))
     else:
-        clip = clip.resized(width=int(W * 1.4))
+        clip = clip.resized(width=int(W * 1.5))
 
-    def zoom(t):
-        p = t / max(duration, 0.1)
-        return 1.0 + 0.15 * p
+    clip = clip.with_duration(duration)
 
-    clip = clip.resized(zoom).with_duration(duration)
-
-    # Çok daha belirgin kayma
-    if move_type == 0:  # sağa
-        def pos(t):
+    # Zoom in veya zoom out
+    if move_type == 0:  # yakınlaş
+        def scale(t):
             p = t / max(duration, 0.1)
-            return (int(150 * p), int(-40 * p))
-    elif move_type == 1:  # sola
-        def pos(t):
+            return 1.0 + 0.20 * p
+    elif move_type == 1:  # uzaklaş
+        def scale(t):
             p = t / max(duration, 0.1)
-            return (int(-150 * p), int(-40 * p))
-    else:  # yukarı
-        def pos(t):
+            return 1.20 - 0.20 * p
+    else:  # hafif yakınlaş
+        def scale(t):
             p = t / max(duration, 0.1)
-            return (0, int(-80 * p))
+            return 1.0 + 0.12 * p
 
-    clip = clip.with_position(pos)
+    clip = clip.resized(scale)
 
-    # Ortadan kırp (hareket görünsün diye)
+    # Ortadan sabit kırp (taşma olmasın)
     clip = clip.cropped(width=W, height=H, x_center=clip.w / 2, y_center=clip.h / 2)
 
-    final = CompositeVideoClip([bg, clip], size=(W, H)).with_duration(duration)
-    return final.resized((W, H))
+    final = CompositeVideoClip([bg, clip.with_position("center")], size=(W, H))
+    return final.with_duration(duration).resized((W, H))
 
 def create_hook(duration=2.5):
     txt = TextClip(
@@ -179,7 +172,6 @@ def main():
 
     print("1. Senaryo...")
     script = generate_script(topic)
-    print(script[:80] + "...")
 
     print("2. Ses...")
     asyncio.run(text_to_speech(script, "ses.mp3"))
