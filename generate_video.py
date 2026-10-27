@@ -109,15 +109,15 @@ def make_clip(img_path, duration, move_type=0):
 def create_hook(duration=2.5):
     txt = TextClip(
         text="BMW 200 BIN KM SONRA\nBOZULUR MU?",
-        font_size=42,
+        font_size=38,
         color="white",
         stroke_color="black",
         stroke_width=5,
         method="caption",
-        size=(W - 160, None),
+        size=(W - 180, None),
         font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     )
-    return txt.with_duration(duration).with_position(("center", 220))
+    return txt.with_duration(duration).with_position(("center", 200))
 
 def create_subtitles(script, total_duration):
     sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script) if len(s.strip()) > 5]
@@ -130,7 +130,7 @@ def create_subtitles(script, total_duration):
         wrapped = textwrap.fill(short, width=14)
         txt = TextClip(
             text=wrapped,
-            font_size=30,
+            font_size=28,
             color="white",
             stroke_color="black",
             stroke_width=4,
@@ -142,6 +142,7 @@ def create_subtitles(script, total_duration):
         # YouTube alt bar için daha yukarı
         txt = txt.with_position(("center", H - 480))
         clips.append(txt)
+        txt = txt.with_position(("center", H - 520))
     return clips
 
 def create_video(script, audio_file, images, output="video.mp4"):
