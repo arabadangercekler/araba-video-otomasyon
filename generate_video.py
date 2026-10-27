@@ -20,7 +20,6 @@ W, H = 1080, 1920
 
 model = genai.GenerativeModel(MODEL_NAME)
 
-# Gemini çalışmazsa kullanılacak yedek senaryo
 FALLBACK_SCRIPT = """
 BMW 200 bin kilometre sonra bozulur mu? Çoğu kişi bunu mit sanıyor. 
 Aslında düzenli bakımlı bir BMW 300-400 bin kilometreyi rahat görüyor. 
@@ -32,11 +31,9 @@ def generate_script(topic):
     prompt = f"""
 Sen profesyonel bir Türk YouTube Shorts senaristisin.
 Konu: {topic}
-
-40-50 saniyelik güçlü bir Shorts senaryosu yaz.
-İlk 3 saniyede kanca olsun.
-Sonunda Mit veya Gerçek de.
-Sadece konuşma metnini yaz. Türkçe. Maksimum 100 kelime.
+40-50 saniyelik güçlü Shorts senaryosu yaz.
+İlk 3 saniyede kanca olsun. Sonunda Mit veya Gerçek de.
+Sadece konuşma metni. Türkçe. Maksimum 100 kelime.
 """
     try:
         response = model.generate_content(prompt)
@@ -46,7 +43,6 @@ Sadece konuşma metnini yaz. Türkçe. Maksimum 100 kelime.
             return text
     except Exception as e:
         print(f"Gemini hatası: {e}")
-
     print("Yedek senaryo kullanılıyor")
     return FALLBACK_SCRIPT.strip()
 
@@ -84,43 +80,36 @@ def make_clip(img_path, duration, move_type=0):
     bg = ColorClip(size=(W, H), color=(0, 0, 0)).with_duration(duration)
     clip = ImageClip(img_path)
 
+    # Ekranı doldur + hareket payı
     if clip.w / clip.h > W / H:
-        clip = clip.resized(height=H)
+        clip = clip.resized(height=int(H * 1.4))
     else:
-        clip = clip.resized(width=W)
-
-    clip = clip.resized(1.3)
+        clip = clip.resized(width=int(W * 1.4))
 
     def zoom(t):
-        return 1.0 + 0.12 * (t / max(duration, 0.1))
+        p = t / max(duration, 0.1)
+        return 1.0 + 0.15 * p
 
     clip = clip.resized(zoom).with_duration(duration)
 
-    if move_type == 0:      # sağa
+    # Çok daha belirgin kayma
+    if move_type == 0:  # sağa
         def pos(t):
             p = t / max(duration, 0.1)
-            return (60 * p, -20 * p)
-    elif move_type == 1:    # sola
+            return (int(150 * p), int(-40 * p))
+    elif move_type == 1:  # sola
         def pos(t):
             p = t / max(duration, 0.1)
-            return (-60 * p, -20 * p)
-    else:                   # yukarı + zoom
+            return (int(-150 * p), int(-40 * p))
+    else:  # yukarı
         def pos(t):
             p = t / max(duration, 0.1)
-            return (0, -45 * p)
+            return (0, int(-80 * p))
 
     clip = clip.with_position(pos)
-    clip = clip.cropped(width=W, height=H, x_center=clip.w/2, y_center=clip.h/2)
 
-    final = CompositeVideoClip([bg, clip], size=(W, H)).with_duration(duration)
-    return final.resized((W, H))
-
-    def zoom(t):
-        return 1.0 + 0.10 * (t / max(duration, 0.1))
-
-    clip = clip.resized(zoom).with_duration(duration)
-    clip = clip.with_position("center")
-    clip = clip.cropped(width=W, height=H, x_center=clip.w/2, y_center=clip.h/2)
+    # Ortadan kırp (hareket görünsün diye)
+    clip = clip.cropped(width=W, height=H, x_center=clip.w / 2, y_center=clip.h / 2)
 
     final = CompositeVideoClip([bg, clip], size=(W, H)).with_duration(duration)
     return final.resized((W, H))
