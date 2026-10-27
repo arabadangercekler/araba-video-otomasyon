@@ -80,7 +80,7 @@ def download_images(count=8):
         print(f"Görsel hatası: {e}")
     return images
 
-def make_clip(img_path, duration):
+def make_clip(img_path, duration, move_type=0):
     bg = ColorClip(size=(W, H), color=(0, 0, 0)).with_duration(duration)
     clip = ImageClip(img_path)
 
@@ -89,7 +89,31 @@ def make_clip(img_path, duration):
     else:
         clip = clip.resized(width=W)
 
-    clip = clip.resized(1.2)
+    clip = clip.resized(1.3)
+
+    def zoom(t):
+        return 1.0 + 0.12 * (t / max(duration, 0.1))
+
+    clip = clip.resized(zoom).with_duration(duration)
+
+    if move_type == 0:      # sağa
+        def pos(t):
+            p = t / max(duration, 0.1)
+            return (60 * p, -20 * p)
+    elif move_type == 1:    # sola
+        def pos(t):
+            p = t / max(duration, 0.1)
+            return (-60 * p, -20 * p)
+    else:                   # yukarı + zoom
+        def pos(t):
+            p = t / max(duration, 0.1)
+            return (0, -45 * p)
+
+    clip = clip.with_position(pos)
+    clip = clip.cropped(width=W, height=H, x_center=clip.w/2, y_center=clip.h/2)
+
+    final = CompositeVideoClip([bg, clip], size=(W, H)).with_duration(duration)
+    return final.resized((W, H))
 
     def zoom(t):
         return 1.0 + 0.10 * (t / max(duration, 0.1))
@@ -147,7 +171,7 @@ def create_video(script, audio_file, images, output="video.mp4"):
     images = images[:8]
 
     clip_dur = duration / len(images)
-    img_clips = [make_clip(img, clip_dur) for img in images]
+    img_clips = [make_clip(img, clip_dur, i % 3) for i, img in enumerate(images)]
 
     video = concatenate_videoclips(img_clips, method="compose").resized((W, H))
     video = video.with_audio(audio).with_duration(duration)
