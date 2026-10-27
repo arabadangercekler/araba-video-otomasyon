@@ -35,8 +35,8 @@ Konu: {topic}
 40-50 saniyelik senaryo yaz.
 İlk 3 saniyede güçlü kanca olsun.
 Sonunda net "Gerçek" veya "Yalan" de.
-Basit ve herkesin anlayacağı kelimeler kullan. "Mit" deme.
-Sadece konuşma metni yaz. Türkçe. Maksimum 100 kelime.
+Basit kelimeler kullan. "Mit" deme.
+Sadece konuşma metni. Türkçe. Max 100 kelime.
 """)
         text = response.text.strip()
         if text and len(text) > 30:
@@ -89,16 +89,13 @@ def make_clip(img_path, duration, move_type=0):
 
     if move_type == 0:
         def scale(t):
-            p = t / max(duration, 0.1)
-            return 1.0 + 0.20 * p
+            return 1.0 + 0.20 * (t / max(duration, 0.1))
     elif move_type == 1:
         def scale(t):
-            p = t / max(duration, 0.1)
-            return 1.20 - 0.20 * p
+            return 1.20 - 0.20 * (t / max(duration, 0.1))
     else:
         def scale(t):
-            p = t / max(duration, 0.1)
-            return 1.0 + 0.12 * p
+            return 1.0 + 0.12 * (t / max(duration, 0.1))
 
     clip = clip.resized(scale)
     clip = clip.cropped(width=W, height=H, x_center=clip.w / 2, y_center=clip.h / 2)
@@ -109,15 +106,15 @@ def make_clip(img_path, duration, move_type=0):
 def create_hook(duration=2.5):
     txt = TextClip(
         text="BMW 200 BIN KM SONRA\nBOZULUR MU?",
-        font_size=38,
+        font_size=40,
         color="white",
         stroke_color="black",
-        stroke_width=5,
+        stroke_width=6,
         method="caption",
-        size=(W - 180, None),
+        size=(900, None),
         font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     )
-    return txt.with_duration(duration).with_position(("center", 200))
+    return txt.with_duration(duration).with_position(("center", 240))
 
 def create_subtitles(script, total_duration):
     sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script) if len(s.strip()) > 5]
@@ -126,23 +123,22 @@ def create_subtitles(script, total_duration):
     dur = total_duration / len(sentences)
     clips = []
     for i, sentence in enumerate(sentences):
-        short = sentence if len(sentence) < 32 else sentence[:29] + "..."
-        wrapped = textwrap.fill(short, width=14)
+        short = sentence if len(sentence) < 30 else sentence[:27] + "..."
+        wrapped = textwrap.fill(short, width=13)
         txt = TextClip(
             text=wrapped,
-            font_size=28,
+            font_size=32,
             color="white",
             stroke_color="black",
-            stroke_width=4,
+            stroke_width=5,
             method="caption",
-            size=(W - 140, None),
+            size=(900, None),
             font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
         )
-        txt = txt.with_start(i * dur).with_duration(max(dur * 0.85, 0.7))
-        # YouTube alt bar için daha yukarı
-        txt = txt.with_position(("center", H - 480))
+        txt = txt.with_start(i * dur).with_duration(max(dur * 0.9, 0.8))
+        # YouTube alt alanı için güvenli konum
+        txt = txt.with_position(("center", 1350))
         clips.append(txt)
-        txt = txt.with_position(("center", H - 520))
     return clips
 
 def create_video(script, audio_file, images, output="video.mp4"):
