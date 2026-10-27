@@ -20,31 +20,35 @@ W, H = 1080, 1920
 
 model = genai.GenerativeModel(MODEL_NAME)
 
+# Gemini çalışmazsa kullanılacak yedek senaryo
+FALLBACK_SCRIPT = """
+BMW 200 bin kilometre sonra bozulur mu? Çoğu kişi bunu mit sanıyor. 
+Aslında düzenli bakımlı bir BMW 300-400 bin kilometreyi rahat görüyor. 
+Asıl sorun ucuz yağ ve ihmal edilen bakımlar. 
+Sonuç: Mit. Bakım yapılırsa uzun ömürlü.
+"""
+
 def generate_script(topic):
     prompt = f"""
 Sen profesyonel bir Türk YouTube Shorts senaristisin.
 Konu: {topic}
 
 40-50 saniyelik güçlü bir Shorts senaryosu yaz.
-
-Kurallar:
-- İlk 3 saniyede güçlü kanca
-- Net ve anlaşılır konuş
-- Sonunda net "Mit" veya "Gerçek" de
-- Sadece konuşma metnini yaz
-- Türkçe
-- Maksimum 100 kelime
+İlk 3 saniyede kanca olsun.
+Sonunda Mit veya Gerçek de.
+Sadece konuşma metnini yaz. Türkçe. Maksimum 100 kelime.
 """
-    for i in range(4):
-        try:
-            response = model.generate_content(prompt)
-            text = response.text.strip()
-            if text and len(text) > 30:
-                return text
-        except Exception as e:
-            print(f"Senaryo hatası ({i+1}): {e}")
-            time.sleep(12)
-    return None
+    try:
+        response = model.generate_content(prompt)
+        text = response.text.strip()
+        if text and len(text) > 30:
+            print("Gemini senaryosu alındı")
+            return text
+    except Exception as e:
+        print(f"Gemini hatası: {e}")
+
+    print("Yedek senaryo kullanılıyor")
+    return FALLBACK_SCRIPT.strip()
 
 async def text_to_speech(text, output_file):
     communicate = edge_tts.Communicate(text, VOICE, rate="+10%")
@@ -162,9 +166,7 @@ def main():
 
     print("1. Senaryo...")
     script = generate_script(topic)
-    if not script:
-        print("Senaryo yok")
-        return
+    print(script[:80] + "...")
 
     print("2. Ses...")
     asyncio.run(text_to_speech(script, "ses.mp3"))
