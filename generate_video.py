@@ -116,27 +116,34 @@ def create_hook(duration=2.5):
     return txt.with_duration(duration).with_position(("center", 250))
 
 def create_subtitles(script, total_duration):
-    # Kelime kelime
     words = script.replace("\n", " ").split()
     words = [w for w in words if w.strip()]
     if not words:
         return []
 
-    word_dur = total_duration / len(words)
+    # 2-3 kelimelik gruplar
+    groups = []
+    i = 0
+    while i < len(words):
+        group = " ".join(words[i:i+2])
+        groups.append(group)
+        i += 2
+
+    group_dur = total_duration / len(groups)
     clips = []
 
-    for i, word in enumerate(words):
+    for i, group in enumerate(groups):
         txt = TextClip(
-            text=word,
-            font_size=36,
+            text=group,
+            font_size=34,
             color="white",
             stroke_color="black",
             stroke_width=5,
             method="label",
             font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
         )
-        txt = txt.with_start(i * word_dur).with_duration(max(word_dur * 1.1, 0.25))
-        txt = txt.with_position(("center", 1400))
+        txt = txt.with_start(i * group_dur).with_duration(max(group_dur * 0.95, 0.35))
+        txt = txt.with_position(("center", 1380))
         clips.append(txt)
 
     return clips
