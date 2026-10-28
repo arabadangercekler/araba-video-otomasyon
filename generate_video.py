@@ -111,7 +111,7 @@ def create_hook(duration=2.5):
         font_size=42,
         color="white",
         stroke_color="black",
-        stroke_width=7,
+        stroke_width=8,
         method="caption",
         size=(820, None),
         font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
@@ -124,22 +124,14 @@ def create_subtitles(script, total_duration, word_timings):
     def make_sub(text, start, dur):
         txt = TextClip(
             text=text,
-            font_size=38,
+            font_size=40,
             color="white",
             stroke_color="black",
-            stroke_width=6,
+            stroke_width=8,
             method="label",
             font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
         )
-        bar = ColorClip(size=(min(txt.w + 40, W - 80), txt.h + 24), color=(0, 0, 0))
-        bar = bar.with_opacity(0.65)
-        bar = bar.with_duration(dur).with_start(start)
-        txt = txt.with_duration(dur).with_start(start)
-        comp = CompositeVideoClip(
-            [bar.with_position(("center", 1240)), txt.with_position(("center", 1250))],
-            size=(W, H)
-        ).with_duration(dur).with_start(start)
-        return comp
+        return txt.with_start(start).with_duration(dur).with_position(("center", 1250))
 
     if word_timings and len(word_timings) > 3:
         print("Gerçek zamanlama")
@@ -149,10 +141,10 @@ def create_subtitles(script, total_duration, word_timings):
             text = " ".join([w["text"] for w in group])
             start = group[0]["start"]
             if i + 2 < len(word_timings):
-                end = word_timings[i+2]["start"]
+                end = word_timings[i + 2]["start"]
             else:
-                end = group[-1]["start"] + group[-1]["duration"] + 0.1
-            dur = max(end - start, 0.2)
+                end = total_duration
+            dur = max(end - start, 0.25)
             clips.append(make_sub(text, start, dur))
             i += 2
         return clips
