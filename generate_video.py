@@ -56,9 +56,9 @@ async def text_to_speech_with_timing(text, output_file):
                 word_timings.append({
                     "text": chunk["text"],
                     "start": chunk["offset"] / 10_000_000,
-                    "duration": chunk["duration"] / 10_000_000
+                    "duration": max(chunk["duration"] / 10_000_000, 0.08)
                 })
-    print(f"Ses oluşturuldu, {len(word_timings)} kelime")
+    print(f"Ses OK | Kelime sayısı: {len(word_timings)}")
     return word_timings
 
 def download_images(count=8):
@@ -89,16 +89,16 @@ def make_clip(img_path, duration, move_type=0):
     bg = ColorClip(size=(W, H), color=(0, 0, 0)).with_duration(duration)
     clip = ImageClip(img_path)
     if clip.w / clip.h > W / H:
-        clip = clip.resized(height=int(H * 1.5))
+        clip = clip.resized(height=int(H * 1.45))
     else:
-        clip = clip.resized(width=int(W * 1.5))
+        clip = clip.resized(width=int(W * 1.45))
     clip = clip.with_duration(duration)
     if move_type == 0:
-        def scale(t): return 1.0 + 0.18 * (t / max(duration, 0.1))
+        def scale(t): return 1.0 + 0.15 * (t / max(duration, 0.1))
     elif move_type == 1:
-        def scale(t): return 1.18 - 0.18 * (t / max(duration, 0.1))
+        def scale(t): return 1.15 - 0.15 * (t / max(duration, 0.1))
     else:
-        def scale(t): return 1.0 + 0.10 * (t / max(duration, 0.1))
+        def scale(t): return 1.0 + 0.08 * (t / max(duration, 0.1))
     clip = clip.resized(scale)
     clip = clip.cropped(width=W, height=H, x_center=clip.w / 2, y_center=clip.h / 2)
     final = CompositeVideoClip([bg, clip.with_position("center")], size=(W, H))
@@ -107,69 +107,62 @@ def make_clip(img_path, duration, move_type=0):
 def create_hook(duration=2.5):
     txt = TextClip(
         text="BMW 200 BIN KM SONRA\nBOZULUR MU?",
-        font_size=42,
+        font_size=40,
         color="white",
         stroke_color="black",
-        stroke_width=8,
+        stroke_width=7,
         method="caption",
-        size=(820, None),
+        size=(800, None),
         font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     )
     return txt.with_duration(duration).with_position(("center", 220))
 
-def make_word_clip(text, start, dur):
-    """Tek kelime - gölge + kalın kenar"""
-    shadow = TextClip(
+def make_word(text, start, dur):
+    """Sade, kalın kenarlı, kesilmeyecek yazı"""
+    txt = TextClip(
         text=text,
-        font_size=42,
-        color="black",
-        stroke_color="black",
-        stroke_width=11,
-        method="label",
-        font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-    )
-    main = TextClip(
-        text=text,
-        font_size=42,
+        font_size=38,
         color="white",
         stroke_color="black",
         stroke_width=6,
         method="label",
         font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     )
-    shadow = shadow.with_position((4, 4))
-    main = main.with_position((0, 0))
-    comp = CompositeVideoClip([shadow, main], size=(main.w + 14, main.h + 14))
-    # YouTube alt bar için güvenli konum
-    return comp.with_start(start).with_duration(max(dur, 0.12)).with_position(("center", 1180))
+    return txt.with_start(start).with_duration(max(dur, 0.10)).with_position(("center", 1200))
 
 def create_subtitles(script, total_duration, word_timings):
     clips = []
 
-    if word_timings and len(word_timings) > 2:
-        print("Kelime kelime gerçek zamanlama kullanılıyor")
+    # 1) Gerçek kelime zamanları varsa onu kullan
+    if word_timings and len(word_timings) > 5:
+        print(">>> Gerçek kelime zamanlaması aktif")
         for i, w in enumerate(word_timings):
             start = w["start"]
-            # Gerçek süre + bir sonraki kelimeye kadar uzat (boşluk olmasın)
             if i + 1 < len(word_timings):
                 end = word_timings[i + 1]["start"]
             else:
-                end = min(w["start"] + w["duration"] + 0.15, total_duration)
-            dur = max(end - start, 0.12)
-            clips.append(make_word_clip(w["text"], start, dur))
+                end = min(start + w["duration"] + 0.1, total_duration)
+            dur = max(end - start, 0.10)
+            clips.append(make_word(w["text"], start, dur))
         return clips
 
-    # Yedek
-    print("Yedek altyazı")
-    words = [w for w in script.replace("\n", " ").split() if w.strip()]
-    word_dur = total_duration / max(len(words), 1)
-    for i, word in enumerate(words):
-        clips.append(make_word_clip(word, i * word_dur, word_dur))
+    # 2) Yedek: karakter sayısına göre süre (eşit değil)
+    print(">>> Karakter tabanlı yedek zamanlama")
+    words = [w for w in re.findall(r'\S+', script) if w.strip()]
+    total_chars = sum(len(w) for w in words) or 1
+    current = 0.0
+    for w in words:
+        # Uzun kelime daha uzun süre alır
+        share = len(w) / total_chars
+        dur = max(share * total_duration, 0.12)
+        clips.append(make_word(w, current, dur))
+        current += dur
     return clips
 
 def create_video(script, audio_file, images, word_timings, output="video.mp4"):
     audio = AudioFileClip(audio_file)
     duration = audio.duration
+    print(f"Ses süresi: {duration:.2f} sn")
 
     while len(images) < 6:
         images.append(random.choice(images))
@@ -181,8 +174,11 @@ def create_video(script, audio_file, images, word_timings, output="video.mp4"):
     video = concatenate_videoclips(img_clips, method="compose").resized((W, H))
     video = video.with_audio(audio).with_duration(duration)
 
+    subs = create_subtitles(script, duration, word_timings)
+    print(f"Altyazı clip sayısı: {len(subs)}")
+
     final = CompositeVideoClip(
-        [video, create_hook(2.5)] + create_subtitles(script, duration, word_timings),
+        [video, create_hook(2.5)] + subs,
         size=(W, H)
     ).with_duration(duration).resized((W, H))
 
@@ -196,7 +192,7 @@ def main():
     print("1. Senaryo...")
     script = generate_script(topic)
 
-    print("2. Ses + kelime zamanları...")
+    print("2. Ses + zamanlama...")
     word_timings = asyncio.run(text_to_speech_with_timing(script, "ses.mp3"))
 
     print("3. Görseller...")
