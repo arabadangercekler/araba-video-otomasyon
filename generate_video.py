@@ -118,40 +118,60 @@ def create_hook(duration=2.5):
     )
     return txt.with_duration(duration).with_position(("center", 230))
 
+def make_shadow_text(text, fontsize=40):
+    """Kenar + gölge efektli yazı"""
+    # Gölge (hafif kaydırılmış siyah)
+    shadow = TextClip(
+        text=text,
+        font_size=fontsize,
+        color="black",
+        stroke_color="black",
+        stroke_width=10,
+        method="label",
+        font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+    )
+    # Ana yazı
+    main = TextClip(
+        text=text,
+        font_size=fontsize,
+        color="white",
+        stroke_color="black",
+        stroke_width=7,
+        method="label",
+        font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+    )
+    # Gölgeyi biraz sağ-alt kaydır
+    shadow = shadow.with_position((4, 4))
+    main = main.with_position((0, 0))
+    comp = CompositeVideoClip([shadow, main], size=(main.w + 12, main.h + 12))
+    return comp
+
 def create_subtitles(script, total_duration, word_timings):
     clips = []
 
     def make_sub(text, start, dur):
-        txt = TextClip(
-            text=text,
-            font_size=40,
-            color="white",
-            stroke_color="black",
-            stroke_width=8,
-            method="label",
-            font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-        )
-        return txt.with_start(start).with_duration(dur).with_position(("center", 1250))
+        txt = make_shadow_text(text, 40)
+        return txt.with_start(start).with_duration(dur).with_position(("center", 1220))
 
     if word_timings and len(word_timings) > 3:
         print("Gerçek zamanlama")
         i = 0
         while i < len(word_timings):
-            group = word_timings[i:i+2]
+            group = word_timings[i:i+3]  # 3 kelime (ekler ayrı düşmesin)
             text = " ".join([w["text"] for w in group])
             start = group[0]["start"]
-            if i + 2 < len(word_timings):
-                end = word_timings[i + 2]["start"]
+            if i + 3 < len(word_timings):
+                end = word_timings[i + 3]["start"]
             else:
                 end = total_duration
             dur = max(end - start, 0.25)
             clips.append(make_sub(text, start, dur))
-            i += 2
+            i += 3
         return clips
 
     print("Yedek altyazı")
     words = [w for w in script.replace("\n", " ").split() if w.strip()]
-    groups = [" ".join(words[i:i+2]) for i in range(0, len(words), 2)]
+    groups = [" ".join(words[i:i+3]) for i in range(0, len(words), 3)]
     group_dur = total_duration / max(len(groups), 1)
     for i, group in enumerate(groups):
         clips.append(make_sub(group, i * group_dur, group_dur))
