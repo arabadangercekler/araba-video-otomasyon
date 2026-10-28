@@ -94,11 +94,11 @@ def make_clip(img_path, duration, move_type=0):
         clip = clip.resized(width=int(W * 1.5))
     clip = clip.with_duration(duration)
     if move_type == 0:
-        def scale(t): return 1.0 + 0.20 * (t / max(duration, 0.1))
+        def scale(t): return 1.0 + 0.18 * (t / max(duration, 0.1))
     elif move_type == 1:
-        def scale(t): return 1.20 - 0.20 * (t / max(duration, 0.1))
+        def scale(t): return 1.18 - 0.18 * (t / max(duration, 0.1))
     else:
-        def scale(t): return 1.0 + 0.12 * (t / max(duration, 0.1))
+        def scale(t): return 1.0 + 0.10 * (t / max(duration, 0.1))
     clip = clip.resized(scale)
     clip = clip.cropped(width=W, height=H, x_center=clip.w / 2, y_center=clip.h / 2)
     final = CompositeVideoClip([bg, clip.with_position("center")], size=(W, H))
@@ -115,54 +115,52 @@ def create_hook(duration=2.5):
         size=(820, None),
         font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     )
-    return txt.with_duration(duration).with_position(("center", 230))
+    return txt.with_duration(duration).with_position(("center", 220))
 
 def make_word_clip(text, start, dur):
-    """Tek kelime, gölge + kalın kenar"""
+    """Tek kelime - gölge + kalın kenar"""
     shadow = TextClip(
         text=text,
-        font_size=44,
+        font_size=42,
         color="black",
         stroke_color="black",
-        stroke_width=12,
+        stroke_width=11,
         method="label",
         font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     )
     main = TextClip(
         text=text,
-        font_size=44,
+        font_size=42,
         color="white",
         stroke_color="black",
         stroke_width=6,
         method="label",
         font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     )
-    shadow = shadow.with_position((5, 5))
+    shadow = shadow.with_position((4, 4))
     main = main.with_position((0, 0))
-    comp = CompositeVideoClip(
-        [shadow, main],
-        size=(main.w + 16, main.h + 16)
-    )
-    return comp.with_start(start).with_duration(dur).with_position(("center", 1220))
+    comp = CompositeVideoClip([shadow, main], size=(main.w + 14, main.h + 14))
+    # YouTube alt bar için güvenli konum
+    return comp.with_start(start).with_duration(max(dur, 0.12)).with_position(("center", 1180))
 
 def create_subtitles(script, total_duration, word_timings):
     clips = []
 
     if word_timings and len(word_timings) > 2:
-        print("Kelime kelime senkron altyazı")
+        print("Kelime kelime gerçek zamanlama kullanılıyor")
         for i, w in enumerate(word_timings):
             start = w["start"]
-            # Bir sonraki kelimeye kadar göster (boşluk olmasın)
+            # Gerçek süre + bir sonraki kelimeye kadar uzat (boşluk olmasın)
             if i + 1 < len(word_timings):
                 end = word_timings[i + 1]["start"]
             else:
-                end = total_duration
-            dur = max(end - start, 0.15)
+                end = min(w["start"] + w["duration"] + 0.15, total_duration)
+            dur = max(end - start, 0.12)
             clips.append(make_word_clip(w["text"], start, dur))
         return clips
 
-    # Yedek: eşit bölünmüş kelimeler
-    print("Yedek kelime altyazı")
+    # Yedek
+    print("Yedek altyazı")
     words = [w for w in script.replace("\n", " ").split() if w.strip()]
     word_dur = total_duration / max(len(words), 1)
     for i, word in enumerate(words):
