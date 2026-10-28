@@ -105,18 +105,6 @@ def make_clip(img_path, duration, move_type=0):
     final = CompositeVideoClip([bg, clip.with_position("center")], size=(W, H))
     return final.with_duration(duration).resized((W, H))
 
-def make_text(text, fontsize=40):
-    """Kalın kenarlı net yazı"""
-    return TextClip(
-        text=text,
-        font_size=fontsize,
-        color="white",
-        stroke_color="black",
-        stroke_width=7,
-        method="label",
-        font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-    )
-
 def create_hook(duration=2.5):
     txt = TextClip(
         text="BMW 200 BIN KM SONRA\nBOZULUR MU?",
@@ -133,6 +121,26 @@ def create_hook(duration=2.5):
 def create_subtitles(script, total_duration, word_timings):
     clips = []
 
+    def make_sub(text, start, dur):
+        txt = TextClip(
+            text=text,
+            font_size=38,
+            color="white",
+            stroke_color="black",
+            stroke_width=6,
+            method="label",
+            font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+        )
+        bar = ColorClip(size=(min(txt.w + 40, W - 80), txt.h + 24), color=(0, 0, 0))
+        bar = bar.with_opacity(0.65)
+        bar = bar.with_duration(dur).with_start(start)
+        txt = txt.with_duration(dur).with_start(start)
+        comp = CompositeVideoClip(
+            [bar.with_position(("center", 1240)), txt.with_position(("center", 1250))],
+            size=(W, H)
+        ).with_duration(dur).with_start(start)
+        return comp
+
     if word_timings and len(word_timings) > 3:
         print("Gerçek zamanlama")
         i = 0
@@ -140,17 +148,12 @@ def create_subtitles(script, total_duration, word_timings):
             group = word_timings[i:i+2]
             text = " ".join([w["text"] for w in group])
             start = group[0]["start"]
-            # Bir sonraki grubun başlangıcına kadar göster (boşluk/sönme olmasın)
             if i + 2 < len(word_timings):
                 end = word_timings[i+2]["start"]
             else:
-                end = group[-1]["start"] + group[-1]["duration"] + 0.15
+                end = group[-1]["start"] + group[-1]["duration"] + 0.1
             dur = max(end - start, 0.2)
-
-            txt = make_text(text, 40)
-            txt = txt.with_start(start).with_duration(dur)
-            txt = txt.with_position(("center", 1320))
-            clips.append(txt)
+            clips.append(make_sub(text, start, dur))
             i += 2
         return clips
 
@@ -158,13 +161,8 @@ def create_subtitles(script, total_duration, word_timings):
     words = [w for w in script.replace("\n", " ").split() if w.strip()]
     groups = [" ".join(words[i:i+2]) for i in range(0, len(words), 2)]
     group_dur = total_duration / max(len(groups), 1)
-
     for i, group in enumerate(groups):
-        txt = make_text(group, 40)
-        txt = txt.with_start(i * group_dur).with_duration(group_dur)
-        txt = txt.with_position(("center", 1320))
-        clips.append(txt)
-
+        clips.append(make_sub(group, i * group_dur, group_dur))
     return clips
 
 def create_video(script, audio_file, images, word_timings, output="video.mp4"):
