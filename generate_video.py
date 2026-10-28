@@ -3,7 +3,6 @@ import time
 import asyncio
 import random
 import re
-import textwrap
 import requests
 import google.generativeai as genai
 import edge_tts
@@ -118,63 +117,56 @@ def create_hook(duration=2.5):
     )
     return txt.with_duration(duration).with_position(("center", 230))
 
-def make_shadow_text(text, fontsize=40):
-    """Kenar + gölge efektli yazı"""
-    # Gölge (hafif kaydırılmış siyah)
+def make_word_clip(text, start, dur):
+    """Tek kelime, gölge + kalın kenar"""
     shadow = TextClip(
         text=text,
-        font_size=fontsize,
+        font_size=44,
         color="black",
         stroke_color="black",
-        stroke_width=10,
+        stroke_width=12,
         method="label",
         font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     )
-    # Ana yazı
     main = TextClip(
         text=text,
-        font_size=fontsize,
+        font_size=44,
         color="white",
         stroke_color="black",
-        stroke_width=7,
+        stroke_width=6,
         method="label",
         font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     )
-    # Gölgeyi biraz sağ-alt kaydır
-    shadow = shadow.with_position((4, 4))
+    shadow = shadow.with_position((5, 5))
     main = main.with_position((0, 0))
-    comp = CompositeVideoClip([shadow, main], size=(main.w + 12, main.h + 12))
-    return comp
+    comp = CompositeVideoClip(
+        [shadow, main],
+        size=(main.w + 16, main.h + 16)
+    )
+    return comp.with_start(start).with_duration(dur).with_position(("center", 1220))
 
 def create_subtitles(script, total_duration, word_timings):
     clips = []
 
-    def make_sub(text, start, dur):
-        txt = make_shadow_text(text, 40)
-        return txt.with_start(start).with_duration(dur).with_position(("center", 1220))
-
-    if word_timings and len(word_timings) > 3:
-        print("Gerçek zamanlama")
-        i = 0
-        while i < len(word_timings):
-            group = word_timings[i:i+3]  # 3 kelime (ekler ayrı düşmesin)
-            text = " ".join([w["text"] for w in group])
-            start = group[0]["start"]
-            if i + 3 < len(word_timings):
-                end = word_timings[i + 3]["start"]
+    if word_timings and len(word_timings) > 2:
+        print("Kelime kelime senkron altyazı")
+        for i, w in enumerate(word_timings):
+            start = w["start"]
+            # Bir sonraki kelimeye kadar göster (boşluk olmasın)
+            if i + 1 < len(word_timings):
+                end = word_timings[i + 1]["start"]
             else:
                 end = total_duration
-            dur = max(end - start, 0.25)
-            clips.append(make_sub(text, start, dur))
-            i += 3
+            dur = max(end - start, 0.15)
+            clips.append(make_word_clip(w["text"], start, dur))
         return clips
 
-    print("Yedek altyazı")
+    # Yedek: eşit bölünmüş kelimeler
+    print("Yedek kelime altyazı")
     words = [w for w in script.replace("\n", " ").split() if w.strip()]
-    groups = [" ".join(words[i:i+3]) for i in range(0, len(words), 3)]
-    group_dur = total_duration / max(len(groups), 1)
-    for i, group in enumerate(groups):
-        clips.append(make_sub(group, i * group_dur, group_dur))
+    word_dur = total_duration / max(len(words), 1)
+    for i, word in enumerate(words):
+        clips.append(make_word_clip(word, i * word_dur, word_dur))
     return clips
 
 def create_video(script, audio_file, images, word_timings, output="video.mp4"):
@@ -206,7 +198,7 @@ def main():
     print("1. Senaryo...")
     script = generate_script(topic)
 
-    print("2. Ses + zamanlama...")
+    print("2. Ses + kelime zamanları...")
     word_timings = asyncio.run(text_to_speech_with_timing(script, "ses.mp3"))
 
     print("3. Görseller...")
