@@ -107,7 +107,6 @@ def create_hook(duration=2.5):
     return txt.with_duration(duration).with_position(("center", 200))
 
 def create_subtitles(script, total_duration):
-    # Cümlelere böl
     sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script) if len(s.strip()) > 3]
     if not sentences:
         sentences = [script]
@@ -118,23 +117,28 @@ def create_subtitles(script, total_duration):
 
     for s in sentences:
         share = len(s) / total_chars
-        dur = max(share * total_duration, 1.2)
+        dur = max(share * total_duration, 1.3)
 
-        # Çok uzun cümleyi kısalt (ekranda sığsın)
-        display = s if len(s) < 42 else s[:39] + "..."
+        # 2 satıra böl (kısaltma yok)
+        words = s.split()
+        if len(words) <= 5:
+            display = s
+        else:
+            mid = len(words) // 2
+            display = " ".join(words[:mid]) + "\n" + " ".join(words[mid:])
 
         txt = TextClip(
             text=display,
-            font_size=32,
+            font_size=30,
             color="white",
             stroke_color="black",
             stroke_width=5,
             method="caption",
-            size=(780, None),
+            size=(820, None),
             font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
         )
         txt = txt.with_start(current).with_duration(dur)
-        txt = txt.with_position(("center", 1100))
+        txt = txt.with_position(("center", 1050))
         clips.append(txt)
         current += dur
 
