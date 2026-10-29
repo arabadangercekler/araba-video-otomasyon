@@ -45,21 +45,10 @@ Basit kelimeler kullan. Sadece konuşma metni. Türkçe. Max 100 kelime.
     print("Yedek senaryo kullanılıyor")
     return FALLBACK_SCRIPT.strip()
 
-async def text_to_speech_with_timing(text, output_file):
+async def text_to_speech(text, output_file):
     communicate = edge_tts.Communicate(text, VOICE, rate="+10%")
-    word_timings = []
-    with open(output_file, "wb") as f:
-        async for chunk in communicate.stream():
-            if chunk["type"] == "audio":
-                f.write(chunk["data"])
-            elif chunk["type"] == "WordBoundary":
-                word_timings.append({
-                    "text": chunk["text"],
-                    "start": chunk["offset"] / 10_000_000,
-                    "duration": max(chunk["duration"] / 10_000_000, 0.08)
-                })
-    print(f"Ses OK | Kelime: {len(word_timings)}")
-    return word_timings
+    await communicate.save(output_file)
+    print("Ses oluşturuldu")
 
 def download_images(count=8):
     images = []
@@ -107,61 +96,51 @@ def make_clip(img_path, duration, move_type=0):
 def create_hook(duration=2.5):
     txt = TextClip(
         text="BMW 200 BIN KM SONRA\nBOZULUR MU?",
-        font_size=40,
-        color="white",
-        stroke_color="black",
-        stroke_width=7,
-        method="caption",
-        size=(800, None),
-        font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-    )
-    return txt.with_duration(duration).with_position(("center", 220))
-
-def make_sub(text, start, dur):
-    txt = TextClip(
-        text=text,
         font_size=36,
         color="white",
         stroke_color="black",
         stroke_width=6,
-        method="label",
+        method="caption",
+        size=(780, None),
         font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     )
-    # Güvenli konum (kesilmesin)
-    return txt.with_start(start).with_duration(max(dur, 0.15)).with_position(("center", 1150))
+    return txt.with_duration(duration).with_position(("center", 200))
 
-def create_subtitles(script, total_duration, word_timings):
+def create_subtitles(script, total_duration):
+    # Cümlelere böl
+    sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script) if len(s.strip()) > 3]
+    if not sentences:
+        sentences = [script]
+
+    total_chars = sum(len(s) for s in sentences) or 1
     clips = []
-
-    if word_timings and len(word_timings) > 5:
-        print("Gerçek zamanlama (2-3 kelime grup)")
-        i = 0
-        while i < len(word_timings):
-            group = word_timings[i:i+2]
-            text = " ".join(w["text"] for w in group)
-            start = group[0]["start"]
-            if i + 2 < len(word_timings):
-                end = word_timings[i + 2]["start"]
-            else:
-                end = total_duration
-            dur = max(end - start, 0.18)
-            clips.append(make_sub(text, start, dur))
-            i += 2
-        return clips
-
-    print("Yedek zamanlama")
-    words = [w for w in re.findall(r'\S+', script) if w.strip()]
-    groups = [" ".join(words[i:i+2]) for i in range(0, len(words), 2)]
-    total_chars = sum(len(g) for g in groups) or 1
     current = 0.0
-    for g in groups:
-        share = len(g) / total_chars
-        dur = max(share * total_duration, 0.2)
-        clips.append(make_sub(g, current, dur))
+
+    for s in sentences:
+        share = len(s) / total_chars
+        dur = max(share * total_duration, 1.2)
+
+        # Çok uzun cümleyi kısalt (ekranda sığsın)
+        display = s if len(s) < 42 else s[:39] + "..."
+
+        txt = TextClip(
+            text=display,
+            font_size=32,
+            color="white",
+            stroke_color="black",
+            stroke_width=5,
+            method="caption",
+            size=(780, None),
+            font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+        )
+        txt = txt.with_start(current).with_duration(dur)
+        txt = txt.with_position(("center", 1100))
+        clips.append(txt)
         current += dur
+
     return clips
 
-def create_video(script, audio_file, images, word_timings, output="video.mp4"):
+def create_video(script, audio_file, images, output="video.mp4"):
     audio = AudioFileClip(audio_file)
     duration = audio.duration
     print(f"Ses: {duration:.1f}s")
@@ -176,11 +155,8 @@ def create_video(script, audio_file, images, word_timings, output="video.mp4"):
     video = concatenate_videoclips(img_clips, method="compose").resized((W, H))
     video = video.with_audio(audio).with_duration(duration)
 
-    subs = create_subtitles(script, duration, word_timings)
-    print(f"Altyazı: {len(subs)} grup")
-
     final = CompositeVideoClip(
-        [video, create_hook(2.5)] + subs,
+        [video, create_hook(2.5)] + create_subtitles(script, duration),
         size=(W, H)
     ).with_duration(duration).resized((W, H))
 
@@ -195,7 +171,7 @@ def main():
     script = generate_script(topic)
 
     print("2. Ses...")
-    word_timings = asyncio.run(text_to_speech_with_timing(script, "ses.mp3"))
+    asyncio.run(text_to_speech(script, "ses.mp3"))
 
     print("3. Görsel...")
     images = download_images(8)
@@ -204,7 +180,7 @@ def main():
         return
 
     print("4. Video...")
-    create_video(script, "ses.mp3", images, word_timings)
+    create_video(script, "ses.mp3", images)
 
 if __name__ == "__main__":
     main()
