@@ -119,7 +119,6 @@ def create_subtitles(script, total_duration):
         share = len(s) / total_chars
         dur = max(share * total_duration, 1.3)
 
-        # 2 satıra böl (kısaltma yok)
         words = s.split()
         if len(words) <= 5:
             display = s
@@ -127,7 +126,19 @@ def create_subtitles(script, total_duration):
             mid = len(words) // 2
             display = " ".join(words[:mid]) + "\n" + " ".join(words[mid:])
 
-        txt = TextClip(
+        # Gölge katmanı
+        shadow = TextClip(
+            text=display,
+            font_size=30,
+            color="black",
+            stroke_color="black",
+            stroke_width=8,
+            method="caption",
+            size=(820, None),
+            font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+        )
+        # Ana yazı
+        main = TextClip(
             text=display,
             font_size=30,
             color="white",
@@ -137,12 +148,15 @@ def create_subtitles(script, total_duration):
             size=(820, None),
             font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
         )
-        txt = txt.with_start(current).with_duration(dur)
-        txt = txt.with_position(("center", 1050))
-        clips.append(txt)
+
+        shadow = shadow.with_start(current).with_duration(dur).with_position(("center", 1054))
+        main = main.with_start(current).with_duration(dur).with_position(("center", 1050))
+
+        clips.append(shadow)
+        clips.append(main)
         current += dur
 
-    return clips
+    return clips      
 
 def create_video(script, audio_file, images, output="video.mp4"):
     audio = AudioFileClip(audio_file)
