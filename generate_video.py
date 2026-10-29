@@ -58,7 +58,7 @@ async def text_to_speech_with_timing(text, output_file):
                     "start": chunk["offset"] / 10_000_000,
                     "duration": max(chunk["duration"] / 10_000_000, 0.08)
                 })
-    print(f"Ses OK | Kelime sayısı: {len(word_timings)}")
+    print(f"Ses OK | Kelime: {len(word_timings)}")
     return word_timings
 
 def download_images(count=8):
@@ -80,7 +80,7 @@ def download_images(count=8):
             with open(filename, "wb") as f:
                 f.write(data)
             images.append(filename)
-            print(f"Görsel {i+1} indirildi")
+            print(f"Görsel {i+1}")
     except Exception as e:
         print(f"Görsel hatası: {e}")
     return images
@@ -89,14 +89,14 @@ def make_clip(img_path, duration, move_type=0):
     bg = ColorClip(size=(W, H), color=(0, 0, 0)).with_duration(duration)
     clip = ImageClip(img_path)
     if clip.w / clip.h > W / H:
-        clip = clip.resized(height=int(H * 1.45))
+        clip = clip.resized(height=int(H * 1.4))
     else:
-        clip = clip.resized(width=int(W * 1.45))
+        clip = clip.resized(width=int(W * 1.4))
     clip = clip.with_duration(duration)
     if move_type == 0:
-        def scale(t): return 1.0 + 0.15 * (t / max(duration, 0.1))
+        def scale(t): return 1.0 + 0.14 * (t / max(duration, 0.1))
     elif move_type == 1:
-        def scale(t): return 1.15 - 0.15 * (t / max(duration, 0.1))
+        def scale(t): return 1.14 - 0.14 * (t / max(duration, 0.1))
     else:
         def scale(t): return 1.0 + 0.08 * (t / max(duration, 0.1))
     clip = clip.resized(scale)
@@ -117,52 +117,54 @@ def create_hook(duration=2.5):
     )
     return txt.with_duration(duration).with_position(("center", 220))
 
-def make_word(text, start, dur):
-    """Sade, kalın kenarlı, kesilmeyecek yazı"""
+def make_sub(text, start, dur):
     txt = TextClip(
         text=text,
-        font_size=38,
+        font_size=36,
         color="white",
         stroke_color="black",
         stroke_width=6,
         method="label",
         font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     )
-    return txt.with_start(start).with_duration(max(dur, 0.10)).with_position(("center", 1200))
+    # Güvenli konum (kesilmesin)
+    return txt.with_start(start).with_duration(max(dur, 0.15)).with_position(("center", 1150))
 
 def create_subtitles(script, total_duration, word_timings):
     clips = []
 
-    # 1) Gerçek kelime zamanları varsa onu kullan
     if word_timings and len(word_timings) > 5:
-        print(">>> Gerçek kelime zamanlaması aktif")
-        for i, w in enumerate(word_timings):
-            start = w["start"]
-            if i + 1 < len(word_timings):
-                end = word_timings[i + 1]["start"]
+        print("Gerçek zamanlama (2-3 kelime grup)")
+        i = 0
+        while i < len(word_timings):
+            group = word_timings[i:i+2]
+            text = " ".join(w["text"] for w in group)
+            start = group[0]["start"]
+            if i + 2 < len(word_timings):
+                end = word_timings[i + 2]["start"]
             else:
-                end = min(start + w["duration"] + 0.1, total_duration)
-            dur = max(end - start, 0.10)
-            clips.append(make_word(w["text"], start, dur))
+                end = total_duration
+            dur = max(end - start, 0.18)
+            clips.append(make_sub(text, start, dur))
+            i += 2
         return clips
 
-    # 2) Yedek: karakter sayısına göre süre (eşit değil)
-    print(">>> Karakter tabanlı yedek zamanlama")
+    print("Yedek zamanlama")
     words = [w for w in re.findall(r'\S+', script) if w.strip()]
-    total_chars = sum(len(w) for w in words) or 1
+    groups = [" ".join(words[i:i+2]) for i in range(0, len(words), 2)]
+    total_chars = sum(len(g) for g in groups) or 1
     current = 0.0
-    for w in words:
-        # Uzun kelime daha uzun süre alır
-        share = len(w) / total_chars
-        dur = max(share * total_duration, 0.12)
-        clips.append(make_word(w, current, dur))
+    for g in groups:
+        share = len(g) / total_chars
+        dur = max(share * total_duration, 0.2)
+        clips.append(make_sub(g, current, dur))
         current += dur
     return clips
 
 def create_video(script, audio_file, images, word_timings, output="video.mp4"):
     audio = AudioFileClip(audio_file)
     duration = audio.duration
-    print(f"Ses süresi: {duration:.2f} sn")
+    print(f"Ses: {duration:.1f}s")
 
     while len(images) < 6:
         images.append(random.choice(images))
@@ -175,15 +177,15 @@ def create_video(script, audio_file, images, word_timings, output="video.mp4"):
     video = video.with_audio(audio).with_duration(duration)
 
     subs = create_subtitles(script, duration, word_timings)
-    print(f"Altyazı clip sayısı: {len(subs)}")
+    print(f"Altyazı: {len(subs)} grup")
 
     final = CompositeVideoClip(
         [video, create_hook(2.5)] + subs,
         size=(W, H)
     ).with_duration(duration).resized((W, H))
 
-    print(f"Final boyut: {final.w}x{final.h}")
     final.write_videofile(output, fps=24, codec="libx264", audio_codec="aac", logger=None)
+    print("Bitti")
     return output
 
 def main():
@@ -192,10 +194,10 @@ def main():
     print("1. Senaryo...")
     script = generate_script(topic)
 
-    print("2. Ses + zamanlama...")
+    print("2. Ses...")
     word_timings = asyncio.run(text_to_speech_with_timing(script, "ses.mp3"))
 
-    print("3. Görseller...")
+    print("3. Görsel...")
     images = download_images(8)
     if len(images) < 3:
         print("Görsel yetersiz")
@@ -203,7 +205,6 @@ def main():
 
     print("4. Video...")
     create_video(script, "ses.mp3", images, word_timings)
-    print("Bitti → video.mp4")
 
 if __name__ == "__main__":
     main()
