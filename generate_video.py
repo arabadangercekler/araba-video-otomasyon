@@ -23,7 +23,7 @@ FALLBACK_SCRIPT = """
 BMW 200 bin kilometre sonra bozulur mu? Birçok kişi bunu doğru sanıyor. 
 Aslında düzenli bakımlı bir BMW 300-400 bin kilometreyi rahat görüyor. 
 Asıl sorun ucuz yağ ve ihmal edilen bakımlar. 
-Bakım yapılırsa uzun ömürlü olur. Bu bir yalan.
+Bakım yapılırsa uzun ömürlü olur. Bu iddia tamamen yalan.
 """
 
 def generate_script(topic):
@@ -33,9 +33,9 @@ Sen profesyonel Türk YouTube Shorts senaristisin.
 Konu: {topic}
 40-50 saniyelik senaryo yaz.
 İlk 5 saniyede kanca olsun.
-En sonda "Bu bir yalan." veya "Bu gerçek." de.
+En sonda net söyle: "Bu iddia tamamen yalan." veya "Bu gerçek."
 Çok basit kelimeler kullan. Herkesin anlayacağı günlük dil.
-"Tez", "iddia", "mit" gibi kelimeler kullanma.
+"Tez", "iddia" dışında ağır kelimeler kullanma.
 Sadece konuşma metni. Türkçe. Max 90 kelime.
 """)
         text = response.text.strip()
@@ -117,8 +117,9 @@ def create_result_text(script, total_duration):
         word, color = "YALAN", "red"
 
     txt = TextClip(
+    txt = TextClip(
         text=word,
-        font_size=80,
+        font_size=72,
         color=color,
         stroke_color="black",
         stroke_width=8,
