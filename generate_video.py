@@ -104,7 +104,7 @@ def create_hook(duration=2.5):
         size=(900, None),
         font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     )
-    return txt.with_duration(duration).with_position(("center", 180))
+    return txt.with_duration(duration).with_position(("center", 260))
 
 def create_subtitles(script, total_duration):
     sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script) if len(s.strip()) > 3]
