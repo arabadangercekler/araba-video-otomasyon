@@ -49,11 +49,11 @@ async def text_to_speech(text, output_file):
     communicate = edge_tts.Communicate(
         text,
         VOICE,
-        rate="+15%",      # biraz daha hızlı
-        pitch="+8Hz"      # biraz daha canlı ton
+        rate="+8%",       # hafif hızlı
+        pitch="-5Hz"      # biraz daha dolgun / doğal ton
     )
     await communicate.save(output_file)
-    print("Ses oluşturuldu (canlandırılmış)")
+    print("Ses oluşturuldu")
 
 def download_images(count=8):
     images = []
