@@ -35,7 +35,7 @@ Konu: {topic}
 İlk 5 saniyede kanca olsun.
 En sonda net söyle: "Bu iddia tamamen yalan." veya "Bu gerçek."
 Çok basit kelimeler kullan. Herkesin anlayacağı günlük dil.
-"Tez", "iddia" dışında ağır kelimeler kullanma.
+Ağır kelimeler kullanma.
 Sadece konuşma metni. Türkçe. Max 90 kelime.
 """)
         text = response.text.strip()
@@ -117,7 +117,6 @@ def create_result_text(script, total_duration):
         word, color = "YALAN", "red"
 
     txt = TextClip(
-    txt = TextClip(
         text=word,
         font_size=72,
         color=color,
@@ -134,11 +133,10 @@ def create_subtitles(script, total_duration):
     if not sentences:
         sentences = [script]
 
-    # Son "Bu bir yalan." cümlesini altyazıdan çıkar (büyük yazı var)
     filtered = []
     for s in sentences:
         low = s.lower()
-        if "bu bir yalan" in low or "bu gerçek" in low:
+        if "bu iddia tamamen yalan" in low or "bu bir yalan" in low or "bu gerçek" in low:
             continue
         if low.strip() in ["yalan.", "yalan", "gerçek.", "gerçek"]:
             continue
