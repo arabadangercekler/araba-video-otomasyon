@@ -118,15 +118,16 @@ def create_result_text(script, total_duration):
 
     txt = TextClip(
         text=word,
-        font_size=72,
+        font_size=64,
         color=color,
         stroke_color="black",
         stroke_width=8,
         method="label",
         font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     )
-    start = max(total_duration - 2.8, 0)
-    return txt.with_start(start).with_duration(2.8).with_position("center")
+    # En sonda gelsin, altyazıyla çakışmasın
+    start = max(total_duration - 2.0, 0)
+    return txt.with_start(start).with_duration(2.0).with_position(("center", 720))
 
 def create_subtitles(script, total_duration):
     sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script) if len(s.strip()) > 3]
