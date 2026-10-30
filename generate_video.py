@@ -32,9 +32,11 @@ def generate_script(topic):
 Sen profesyonel Türk YouTube Shorts senaristisin.
 Konu: {topic}
 40-50 saniyelik senaryo yaz.
-İlk 3 saniyede kanca olsun.
+İlk 5-6 saniyede güçlü kanca olsun.
 Sonunda net Gerçek veya Yalan de.
-Basit kelimeler kullan. Sadece konuşma metni. Türkçe. Max 100 kelime.
+Basit kelimeler kullan.
+Konuşma akıcı olsun, cümleler arasında uzun duraklama olmasın.
+Sadece konuşma metni. Türkçe. Max 100 kelime.
 """)
         text = response.text.strip()
         if text and len(text) > 30:
@@ -49,8 +51,8 @@ async def text_to_speech(text, output_file):
     communicate = edge_tts.Communicate(
         text,
         VOICE,
-        rate="+8%",       # hafif hızlı
-        pitch="-5Hz"      # biraz daha dolgun / doğal ton
+        rate="+18%",      # daha akıcı
+        pitch="-3Hz"
     )
     await communicate.save(output_file)
     print("Ses oluşturuldu")
