@@ -93,18 +93,19 @@ def make_clip(img_path, duration, move_type=0):
     final = CompositeVideoClip([bg, clip.with_position("center")], size=(W, H))
     return final.with_duration(duration).resized((W, H))
 
-def create_hook(duration=2.5):
+def create_hook(duration=3.2):
     txt = TextClip(
         text="BMW 200 BIN KM SONRA\nBOZULUR MU?",
-        font_size=38,
+        font_size=36,
         color="white",
         stroke_color="black",
-        stroke_width=6,
+        stroke_width=8,
         method="caption",
-        size=(900, None),
+        size=(860, None),
         font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     )
-    return txt.with_duration(duration).with_position(("center", 260))
+    # Bir tık sola + güvenli yükseklik
+    return txt.with_duration(duration).with_position((80, 240))
 
 def create_subtitles(script, total_duration):
     sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script) if len(s.strip()) > 3]
