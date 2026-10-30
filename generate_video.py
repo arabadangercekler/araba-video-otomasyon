@@ -96,15 +96,15 @@ def make_clip(img_path, duration, move_type=0):
 def create_hook(duration=2.5):
     txt = TextClip(
         text="BMW 200 BIN KM SONRA\nBOZULUR MU?",
-        font_size=36,
+        font_size=34,
         color="white",
         stroke_color="black",
         stroke_width=6,
         method="caption",
-        size=(780, None),
+        size=(760, None),
         font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     )
-    return txt.with_duration(duration).with_position(("center", 200))
+    return txt.with_duration(duration).with_position(("center", 190))
 
 def create_subtitles(script, total_duration):
     sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script) if len(s.strip()) > 3]
@@ -136,15 +136,8 @@ def create_subtitles(script, total_duration):
             size=(820, None),
             font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
         )
-
-        # Okunabilirlik için yarı saydam siyah şerit
-        bar_h = txt.h + 28
-        bar_w = min(txt.w + 50, W - 100)
-        bar = ColorClip(size=(bar_w, bar_h), color=(0, 0, 0)).with_opacity(0.55)
-        bar = bar.with_start(current).with_duration(dur).with_position(("center", 1040))
-        txt = txt.with_start(current).with_duration(dur).with_position(("center", 1050))
-
-        clips.append(bar)
+        txt = txt.with_start(current).with_duration(dur)
+        txt = txt.with_position(("center", 1050))
         clips.append(txt)
         current += dur
 
