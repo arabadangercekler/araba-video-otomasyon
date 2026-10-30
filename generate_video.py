@@ -120,26 +120,25 @@ def create_result_text(script, total_duration):
     else:
         word, color = "YALAN", (220, 30, 30)
 
-    # Yazıyı resim olarak çiz
-    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 70)
-    # Geçici ölçüm
+    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 90)
     dummy = Image.new("RGBA", (10, 10))
     d = ImageDraw.Draw(dummy)
     bbox = d.textbbox((0, 0), word, font=font)
     tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
 
-    img = Image.new("RGBA", (tw + 40, th + 40), (0, 0, 0, 0))
+    img = Image.new("RGBA", (tw + 60, th + 60), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
-    # Siyah kenar
-    for dx, dy in [(-3,-3),(-3,3),(3,-3),(3,3),(-3,0),(3,0),(0,-3),(0,3)]:
-        draw.text((20+dx, 20+dy), word, font=font, fill=(0, 0, 0, 255))
-    # Ana renk
-    draw.text((20, 20), word, font=font, fill=color + (255,))
+    for dx, dy in [(-4,-4),(-4,4),(4,-4),(4,4),(-4,0),(4,0),(0,-4),(0,4)]:
+        draw.text((30+dx, 30+dy), word, font=font, fill=(0, 0, 0, 255))
+    draw.text((30, 30), word, font=font, fill=color + (255,))
+
+    # Hafif çapraz damga efekti
+    img = img.rotate(12, expand=True, fillcolor=(0, 0, 0, 0))
 
     arr = np.array(img)
     clip = ImageClip(arr).with_duration(2.0)
     start = max(total_duration - 2.0, 0)
-    return clip.with_start(start).with_position(("center", 600))
+    return clip.with_start(start).with_position(("center", 580))
 
 def create_subtitles(script, total_duration):
     sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script) if len(s.strip()) > 3]
