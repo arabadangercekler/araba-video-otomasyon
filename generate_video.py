@@ -111,24 +111,35 @@ def create_hook(duration=5.5):
     return txt.with_duration(duration).with_position((80, 230))
 
 def create_result_text(script, total_duration):
+    from PIL import Image, ImageDraw, ImageFont
+    import numpy as np
+
     low = script.lower()
     if "gerçek" in low:
-        word, color = "GERÇEK", "green"
+        word, color = "GERÇEK", (0, 200, 0)
     else:
-        word, color = "YALAN", "red"
+        word, color = "YALAN", (220, 30, 30)
 
-    txt = TextClip(
-        text=word,
-        font_size=52,
-        color=color,
-        stroke_color="black",
-        stroke_width=7,
-        method="label",
-        font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-    )
+    # Yazıyı resim olarak çiz
+    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 70)
+    # Geçici ölçüm
+    dummy = Image.new("RGBA", (10, 10))
+    d = ImageDraw.Draw(dummy)
+    bbox = d.textbbox((0, 0), word, font=font)
+    tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+
+    img = Image.new("RGBA", (tw + 40, th + 40), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    # Siyah kenar
+    for dx, dy in [(-3,-3),(-3,3),(3,-3),(3,3),(-3,0),(3,0),(0,-3),(0,3)]:
+        draw.text((20+dx, 20+dy), word, font=font, fill=(0, 0, 0, 255))
+    # Ana renk
+    draw.text((20, 20), word, font=font, fill=color + (255,))
+
+    arr = np.array(img)
+    clip = ImageClip(arr).with_duration(2.0)
     start = max(total_duration - 2.0, 0)
-    # Daha yukarıda → altı kesilmesin
-    return txt.with_start(start).with_duration(2.0).with_position(("center", 580))
+    return clip.with_start(start).with_position(("center", 600))
 
 def create_subtitles(script, total_duration):
     sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script) if len(s.strip()) > 3]
