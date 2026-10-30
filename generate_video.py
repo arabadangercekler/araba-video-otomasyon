@@ -93,7 +93,7 @@ def make_clip(img_path, duration, move_type=0):
     final = CompositeVideoClip([bg, clip.with_position("center")], size=(W, H))
     return final.with_duration(duration).resized((W, H))
 
-def create_hook(duration=3.2):
+def create_hook(duration=4.5):
     txt = TextClip(
         text="BMW 200 BIN KM SONRA\nBOZULUR MU?",
         font_size=36,
