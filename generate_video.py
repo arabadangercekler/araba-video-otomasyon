@@ -20,10 +20,11 @@ W, H = 1080, 1920
 model = genai.GenerativeModel(MODEL_NAME)
 
 FALLBACK_SCRIPT = """
-BMW 200 bin kilometre sonra bozulur mu? Birçok kişi bunu doğru sanıyor. 
-Aslında düzenli bakımlı bir BMW 300-400 bin kilometreyi rahat görüyor. 
-Asıl sorun ucuz yağ ve ihmal edilen bakımlar. 
-Bakım yapılırsa uzun ömürlü olur. Bu iddia tamamen yalan.
+BMW 200 bin kilometre sonra bozulur mu? Birçok kişi servise gider gitmez bunu duyuyor. 
+Aslında N57 dizel motorlar düzenli bakımlıysa 400 bin kilometreyi rahat görüyor. 
+Asıl sorun ucuz yağ, geç değiştirilen filtre ve soğuk motora basılan gaz. 
+Zincir germe sorunları da bakımsız araçlarda çıkıyor. 
+Bakımı yapılan BMW uzun yaşar. Bu iddia tamamen yalan.
 """
 
 def generate_script(topic):
@@ -118,16 +119,15 @@ def create_result_text(script, total_duration):
 
     txt = TextClip(
         text=word,
-        font_size=64,
+        font_size=56,
         color=color,
         stroke_color="black",
-        stroke_width=8,
+        stroke_width=7,
         method="label",
         font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     )
-    # En sonda gelsin, altyazıyla çakışmasın
     start = max(total_duration - 2.0, 0)
-    return txt.with_start(start).with_duration(2.0).with_position(("center", 720))
+    return txt.with_start(start).with_duration(2.0).with_position(("center", 700))
 
 def create_subtitles(script, total_duration):
     sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script) if len(s.strip()) > 3]
