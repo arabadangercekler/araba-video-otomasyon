@@ -46,9 +46,14 @@ Basit kelimeler kullan. Sadece konuşma metni. Türkçe. Max 100 kelime.
     return FALLBACK_SCRIPT.strip()
 
 async def text_to_speech(text, output_file):
-    communicate = edge_tts.Communicate(text, VOICE, rate="+10%")
+    communicate = edge_tts.Communicate(
+        text,
+        VOICE,
+        rate="+15%",      # biraz daha hızlı
+        pitch="+8Hz"      # biraz daha canlı ton
+    )
     await communicate.save(output_file)
-    print("Ses oluşturuldu")
+    print("Ses oluşturuldu (canlandırılmış)")
 
 def download_images(count=8):
     images = []
