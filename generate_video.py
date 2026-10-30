@@ -118,6 +118,30 @@ def create_hook(duration=4.5):
     # Bir tık sola + güvenli yükseklik
     return txt.with_duration(duration).with_position((80, 240))
 
+def create_result_text(script, total_duration):
+    script_lower = script.lower()
+    if "yalan" in script_lower[-40:]:
+        word = "YALAN"
+        color = "red"
+    elif "gerçek" in script_lower[-40:] or "dogru" in script_lower[-40:] or "doğru" in script_lower[-40:]:
+        word = "GERÇEK"
+        color = "green"
+    else:
+        return None
+
+    txt = TextClip(
+        text=word,
+        font_size=90,
+        color=color,
+        stroke_color="black",
+        stroke_width=10,
+        method="label",
+        font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+    )
+    # Son 2.5 saniye ortada dursun
+    start = max(total_duration - 2.5, 0)
+    return txt.with_start(start).with_duration(2.5).with_position("center")
+
 def create_subtitles(script, total_duration):
     sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script) if len(s.strip()) > 3]
     if not sentences:
