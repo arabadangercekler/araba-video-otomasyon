@@ -98,17 +98,36 @@ def make_clip(img_path, duration, move_type=0):
     return final.with_duration(duration).resized((W, H))
 
 def create_hook(duration=5.5):
-    txt = TextClip(
-        text="BMW 200 BIN KM SONRA\nBOZULUR MU?",
-        font_size=36,
-        color="white",
-        stroke_color="black",
-        stroke_width=7,
-        method="caption",
-        size=(840, None),
-        font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-    )
-    return txt.with_duration(duration).with_position((80, 230))
+    from PIL import Image, ImageDraw, ImageFont
+    import numpy as np
+
+    lines = ["BMW 200 BIN KM SONRA", "BOZULUR MU?"]
+    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 42)
+
+    dummy = Image.new("RGBA", (10, 10))
+    d = ImageDraw.Draw(dummy)
+    widths = []
+    heights = []
+    for line in lines:
+        bbox = d.textbbox((0, 0), line, font=font)
+        widths.append(bbox[2] - bbox[0])
+        heights.append(bbox[3] - bbox[1])
+    tw = max(widths) + 40
+    th = sum(heights) + 20
+
+    img = Image.new("RGBA", (tw, th), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    y = 5
+    for i, line in enumerate(lines):
+        x = (tw - widths[i]) // 2
+        for dx, dy in [(-3,-3),(-3,3),(3,-3),(3,3),(-3,0),(3,0),(0,-3),(0,3)]:
+            draw.text((x+dx, y+dy), line, font=font, fill=(0, 0, 0, 255))
+        draw.text((x, y), line, font=font, fill=(255, 255, 255, 255))
+        y += heights[i] + 8
+
+    arr = np.array(img)
+    clip = ImageClip(arr).with_duration(duration)
+    return clip.with_position((60, 220))
 
 def create_result_text(script, total_duration):
     from PIL import Image, ImageDraw, ImageFont
