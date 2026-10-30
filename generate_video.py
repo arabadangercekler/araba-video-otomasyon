@@ -48,10 +48,14 @@ Sadece konuşma metni. Türkçe. Max 100 kelime.
     return FALLBACK_SCRIPT.strip()
 
 async def text_to_speech(text, output_file):
+    # Noktaları yumuşat → cümle arası uzun bekleme azalır
+    clean = text.replace(". ", ", ").replace("! ", ", ").replace("? ", ", ")
+    clean = clean.replace("...", ",")
+
     communicate = edge_tts.Communicate(
-        text,
+        clean,
         VOICE,
-        rate="+18%",      # daha akıcı
+        rate="+12%",
         pitch="-3Hz"
     )
     await communicate.save(output_file)
