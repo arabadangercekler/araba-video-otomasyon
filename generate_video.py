@@ -33,9 +33,10 @@ Sen profesyonel Türk YouTube Shorts senaristisin.
 Konu: {topic}
 40-50 saniyelik senaryo yaz.
 İlk 5 saniyede kanca olsun.
-En sonda şu cümleyle bitir: "Bu bir yalan." veya "Bu gerçek."
-Başka yerde yalan/gerçek deme.
-Basit ve akıcı konuş. Sadece konuşma metni. Türkçe. Max 95 kelime.
+En sonda "Bu bir yalan." veya "Bu gerçek." de.
+Çok basit kelimeler kullan. Herkesin anlayacağı günlük dil.
+"Tez", "iddia", "mit" gibi kelimeler kullanma.
+Sadece konuşma metni. Türkçe. Max 90 kelime.
 """)
         text = response.text.strip()
         if text and len(text) > 30:
@@ -160,16 +161,16 @@ def create_subtitles(script, total_duration):
 
         txt = TextClip(
             text=display,
-            font_size=28,
+            font_size=26,
             color="white",
             stroke_color="black",
             stroke_width=5,
             method="caption",
-            size=(800, None),
+            size=(780, None),
             font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
         )
         txt = txt.with_start(current).with_duration(dur)
-        txt = txt.with_position(("center", 1080))
+        txt = txt.with_position(("center", 980))
         clips.append(txt)
         current += dur
 
