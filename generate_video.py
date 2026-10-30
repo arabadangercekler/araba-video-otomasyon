@@ -23,7 +23,7 @@ FALLBACK_SCRIPT = """
 BMW 200 bin kilometre sonra bozulur mu? Birçok kişi bunu doğru sanıyor. 
 Aslında düzenli bakımlı bir BMW 300-400 bin kilometreyi rahat görüyor. 
 Asıl sorun ucuz yağ ve ihmal edilen bakımlar. 
-Bakım yapılırsa uzun ömürlü olur.
+Bakım yapılırsa uzun ömürlü olur. Yalan.
 """
 
 def generate_script(topic):
@@ -33,9 +33,9 @@ Sen profesyonel Türk YouTube Shorts senaristisin.
 Konu: {topic}
 40-50 saniyelik senaryo yaz.
 İlk 5 saniyede güçlü kanca olsun.
-Sonunda "Yalan" veya "Gerçek" kelimesini SÖYLEME. Sadece sonucu ima et.
-Örnek bitiş: "Bakım yapılırsa uzun ömürlü olur."
-Basit kelimeler kullan. Konuşma akıcı olsun.
+En sonda tek kelime olarak "Yalan" veya "Gerçek" de.
+Başka yerde bu kelimeleri kullanma.
+Basit kelimeler. Konuşma akıcı olsun.
 Sadece konuşma metni. Türkçe. Max 95 kelime.
 """)
         text = response.text.strip()
@@ -50,9 +50,6 @@ Sadece konuşma metni. Türkçe. Max 95 kelime.
 async def text_to_speech(text, output_file):
     clean = text.replace(". ", ", ").replace("! ", ", ").replace("? ", ", ")
     clean = clean.replace("...", ",")
-    # Sesten yalan/gerçek kelimesini çıkar (görselde göstereceğiz)
-    clean = re.sub(r'\b(yalan|gerçek|doğru)\b', '', clean, flags=re.IGNORECASE)
-    clean = re.sub(r'\s+', ' ', clean).strip()
     communicate = edge_tts.Communicate(
         clean,
         VOICE,
@@ -108,48 +105,54 @@ def make_clip(img_path, duration, move_type=0):
 def create_hook(duration=5.5):
     txt = TextClip(
         text="BMW 200 BIN KM SONRA\nBOZULUR MU?",
-        font_size=40,
+        font_size=38,
         color="white",
         stroke_color="black",
         stroke_width=8,
         method="caption",
-        size=(880, None),
+        size=(860, None),
         font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     )
-    return txt.with_duration(duration).with_position((70, 250))
+    return txt.with_duration(duration).with_position((70, 240))
 
-def create_result_text(total_duration, is_yalan=True):
-    word = "YALAN" if is_yalan else "GERÇEK"
-    color = "red" if is_yalan else "green"
+def create_result_text(script, total_duration):
+    low = script.lower()
+    if "yalan" in low:
+        word, color = "YALAN", "red"
+    elif "gerçek" in low or "doğru" in low:
+        word, color = "GERÇEK", "green"
+    else:
+        word, color = "YALAN", "red"
 
     txt = TextClip(
         text=word,
-        font_size=110,
+        font_size=95,
         color=color,
         stroke_color="black",
-        stroke_width=12,
+        stroke_width=10,
         method="label",
         font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     )
-    start = max(total_duration - 3.0, 0)
-    return txt.with_start(start).with_duration(3.0).with_position("center")
+    start = max(total_duration - 2.5, 0)
+    return txt.with_start(start).with_duration(2.5).with_position("center")
 
 def create_subtitles(script, total_duration):
     sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script) if len(s.strip()) > 3]
     if not sentences:
         sentences = [script]
 
+    # Altyazıdan yalan/gerçek kelimesini çıkar
     filtered = []
     for s in sentences:
-        low = s.lower()
-        if re.search(r'\b(yalan|gerçek|doğru)\b', low):
-            # Bu kelimeleri cümleden çıkar
-            s2 = re.sub(r'\b(yalan|gerçek|doğru|sonuç:)\b', '', s, flags=re.IGNORECASE)
-            s2 = re.sub(r'\s+', ' ', s2).strip(" .,:")
-            if len(s2) < 8:
-                continue
-            s = s2
-        filtered.append(s)
+        low = s.lower().strip()
+        # Sadece "Yalan." / "Gerçek." gibi kısa sonuç cümlelerini atla
+        if low in ["yalan.", "yalan", "gerçek.", "gerçek", "doğru.", "doğru"]:
+            continue
+        # Cümle içinde geçiyorsa kelimeyi sil
+        s2 = re.sub(r'\b(yalan|gerçek|doğru)\b', '', s, flags=re.IGNORECASE)
+        s2 = re.sub(r'\s+', ' ', s2).strip(" .,:")
+        if len(s2) >= 8:
+            filtered.append(s2)
     sentences = filtered if filtered else sentences
 
     total_chars = sum(len(s) for s in sentences) or 1
@@ -158,7 +161,7 @@ def create_subtitles(script, total_duration):
 
     for s in sentences:
         share = len(s) / total_chars
-        dur = max(share * total_duration * 0.88, 1.2)
+        dur = max(share * total_duration * 0.90, 1.2)
 
         words = s.split()
         if len(words) <= 5:
@@ -199,12 +202,9 @@ def create_video(script, audio_file, images, output="video.mp4"):
     video = concatenate_videoclips(img_clips, method="compose").resized((W, H))
     video = video.with_audio(audio).with_duration(duration)
 
-    # Bu konu yalan → True (ileride konuya göre değiştirebiliriz)
-    is_yalan = True
-
     layers = [video, create_hook(5.5)] + create_subtitles(script, duration)
-    layers.append(create_result_text(duration, is_yalan=is_yalan))
-    print("Sonuç yazısı eklendi: YALAN" if is_yalan else "Sonuç yazısı eklendi: GERÇEK")
+    layers.append(create_result_text(script, duration))
+    print("Sonuç yazısı eklendi")
 
     final = CompositeVideoClip(layers, size=(W, H)).with_duration(duration).resized((W, H))
     final.write_videofile(output, fps=24, codec="libx264", audio_codec="aac", logger=None)
@@ -216,6 +216,7 @@ def main():
 
     print("1. Senaryo...")
     script = generate_script(topic)
+    print(script[-80:])
 
     print("2. Ses...")
     asyncio.run(text_to_speech(script, "ses.mp3"))
