@@ -32,8 +32,8 @@ def generate_script(topic):
 Sen profesyonel Türk YouTube Shorts senaristisin.
 Konu: {topic}
 40-50 saniyelik senaryo yaz.
-İlk 5-6 saniyede güçlü kanca olsun.
-Sonunda net Gerçek veya Yalan de.
+İlk 5 saniyede güçlü kanca olsun.
+Sonunda net bir şekilde "Yalan" veya "Gerçek" de.
 Basit kelimeler kullan.
 Konuşma akıcı olsun, cümleler arasında uzun duraklama olmasın.
 Sadece konuşma metni. Türkçe. Max 100 kelime.
@@ -48,10 +48,8 @@ Sadece konuşma metni. Türkçe. Max 100 kelime.
     return FALLBACK_SCRIPT.strip()
 
 async def text_to_speech(text, output_file):
-    # Noktaları yumuşat → cümle arası uzun bekleme azalır
     clean = text.replace(". ", ", ").replace("! ", ", ").replace("? ", ", ")
     clean = clean.replace("...", ",")
-
     communicate = edge_tts.Communicate(
         clean,
         VOICE,
@@ -104,48 +102,57 @@ def make_clip(img_path, duration, move_type=0):
     final = CompositeVideoClip([bg, clip.with_position("center")], size=(W, H))
     return final.with_duration(duration).resized((W, H))
 
-def create_hook(duration=4.5):
+def create_hook(duration=5.5):
     txt = TextClip(
         text="BMW 200 BIN KM SONRA\nBOZULUR MU?",
-        font_size=36,
+        font_size=40,
         color="white",
         stroke_color="black",
         stroke_width=8,
         method="caption",
-        size=(860, None),
+        size=(880, None),
         font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     )
-    # Bir tık sola + güvenli yükseklik
-    return txt.with_duration(duration).with_position((80, 240))
+    # Biraz sola + biraz aşağı
+    return txt.with_duration(duration).with_position((70, 280))
 
 def create_result_text(script, total_duration):
-    script_lower = script.lower()
-    if "yalan" in script_lower[-40:]:
-        word = "YALAN"
-        color = "red"
-    elif "gerçek" in script_lower[-40:] or "dogru" in script_lower[-40:] or "doğru" in script_lower[-40:]:
-        word = "GERÇEK"
-        color = "green"
+    low = script.lower()
+    if "yalan" in low:
+        word, color = "YALAN", "red"
+    elif "gerçek" in low or "doğru" in low or "dogru" in low:
+        word, color = "GERÇEK", "green"
     else:
         return None
 
     txt = TextClip(
         text=word,
-        font_size=90,
+        font_size=100,
         color=color,
-        stroke_color="black",
-        stroke_width=10,
+        stroke_color="white",
+        stroke_width=8,
         method="label",
         font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
     )
-    # Son 2.5 saniye ortada dursun
-    start = max(total_duration - 2.5, 0)
-    return txt.with_start(start).with_duration(2.5).with_position("center")
+    start = max(total_duration - 2.8, 0)
+    return txt.with_start(start).with_duration(2.8).with_position("center")
 
 def create_subtitles(script, total_duration):
     sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script) if len(s.strip()) > 3]
     if not sentences:
         sentences = [script]
+
+    # Sonuç kelimesini altyazıdan çıkar
+    filtered = []
+    for s in sentences:
+        low = s.lower().strip()
+        if low in ["yalan.", "yalan", "gerçek.", "gerçek", "doğru.", "doğru"]:
+            continue
+        if "sonuç" in low and ("yalan" in low or "gerçek" in low):
+            continue
+        filtered.append(s)
+    if filtered:
+        sentences = filtered
 
     total_chars = sum(len(s) for s in sentences) or 1
     clips = []
@@ -153,7 +160,7 @@ def create_subtitles(script, total_duration):
 
     for s in sentences:
         share = len(s) / total_chars
-        dur = max(share * total_duration, 1.3)
+        dur = max(share * total_duration * 0.90, 1.2)
 
         words = s.split()
         if len(words) <= 5:
@@ -194,11 +201,13 @@ def create_video(script, audio_file, images, output="video.mp4"):
     video = concatenate_videoclips(img_clips, method="compose").resized((W, H))
     video = video.with_audio(audio).with_duration(duration)
 
-    final = CompositeVideoClip(
-        [video, create_hook(2.5)] + create_subtitles(script, duration),
-        size=(W, H)
-    ).with_duration(duration).resized((W, H))
+    layers = [video, create_hook(5.5)] + create_subtitles(script, duration)
+    result = create_result_text(script, duration)
+    if result is not None:
+        layers.append(result)
+        print("Sonuç yazısı eklendi")
 
+    final = CompositeVideoClip(layers, size=(W, H)).with_duration(duration).resized((W, H))
     final.write_videofile(output, fps=24, codec="libx264", audio_codec="aac", logger=None)
     print("Bitti")
     return output
@@ -208,6 +217,7 @@ def main():
 
     print("1. Senaryo...")
     script = generate_script(topic)
+    print(script[:120])
 
     print("2. Ses...")
     asyncio.run(text_to_speech(script, "ses.mp3"))
