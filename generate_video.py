@@ -63,19 +63,37 @@ Sadece konuşma metni. Türkçe.
 async def text_to_speech(text, output_file):
     clean = text.replace(". ", ", ").replace("! ", ", ").replace("? ", ", ")
     communicate = edge_tts.Communicate(clean, VOICE, rate="+12%", pitch="-3Hz")
-    await communicate.save(output_file)
-    print("Ses oluşturuldu")
+    word_timings = []
+    with open(output_file, "wb") as f:
+        async for chunk in communicate.stream():
+            if chunk["type"] == "audio":
+                f.write(chunk["data"])
+            elif chunk["type"] == "WordBoundary":
+                word_timings.append({
+                    "text": chunk["text"],
+                    "start": chunk["offset"] / 10_000_000,
+                    "duration": max(chunk["duration"] / 10_000_000, 0.08)
+                })
+    print(f"Ses OK | {len(word_timings)} kelime")
+    return word_timings
 
 def download_images(topic, count=8):
     images = []
-    queries = [
-        "BMW car",
-        "BMW sedan",
-        "BMW engine",
-        "BMW motor",
-        "BMW dashboard",
-        "BMW rear light"
-    ]
+    t = topic.lower()
+
+    if "elektrikli" in t or "batarya" in t:
+        queries = ["electric car", "EV car", "electric vehicle", "car battery"]
+    elif "dizel" in t:
+        queries = ["diesel engine", "diesel car", "car engine"]
+    elif "otomatik vites" in t:
+        queries = ["automatic transmission", "car gear stick", "car interior"]
+    elif "turbo" in t:
+        queries = ["turbo engine", "car turbo", "car engine bay"]
+    elif "bmw" in t:
+        queries = ["BMW car", "BMW sedan", "BMW engine", "BMW rear"]
+    else:
+        queries = ["car exterior", "sedan car", "car engine", "car dashboard"]
+
     for q in queries:
         if len(images) >= count:
             break
@@ -93,7 +111,7 @@ def download_images(topic, count=8):
                 tags = (hit.get("tags") or "").lower()
                 if any(x in tags for x in ["people", "person", "man", "woman", "portrait", "building", "architecture", "abstract"]):
                     continue
-                if "bmw" not in tags and "car" not in tags and "auto" not in tags and "vehicle" not in tags:
+                if ("elektrikli" in t or "batarya" in t) and "bmw" in tags:
                     continue
                 img_url = hit.get("largeImageURL") or hit.get("webformatURL")
                 if not img_url:
@@ -111,7 +129,7 @@ def download_images(topic, count=8):
         print("Yedek arama...")
         url = (
             f"https://pixabay.com/api/?key={PIXABAY_KEY}"
-            f"&q=BMW+car&image_type=photo&orientation=vertical"
+            f"&q=car&image_type=photo&orientation=vertical"
             f"&per_page={count}&safesearch=true"
         )
         try:
@@ -149,7 +167,6 @@ def make_clip(img_path, duration, move_type=0):
     return final.with_duration(duration).resized((W, H))
 
 def create_hook(topic, duration=5.5):
-    # Konudan kısa başlık çıkar
     t = topic.lower()
     if "bmw" in t and "200" in t:
         lines = ["BMW 200 BIN KM SONRA", "BOZULUR MU?"]
@@ -223,7 +240,7 @@ def create_result_text(script, total_duration):
     start = max(total_duration - 2.0, 0)
     return clip.with_start(start).with_position(("center", 560))
 
-def create_subtitles(script, total_duration):
+def create_subtitles(script, total_duration, word_timings):
     sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script) if len(s.strip()) > 3]
     if not sentences:
         sentences = [script]
@@ -238,10 +255,45 @@ def create_subtitles(script, total_duration):
         filtered.append(s)
     sentences = filtered if filtered else sentences
 
-    total_chars = sum(len(s) for s in sentences) or 1
     clips = []
-    current = 0.0
 
+    if word_timings and len(word_timings) > 5:
+        idx = 0
+        for s in sentences:
+            s_words = s.split()
+            n = max(len(s_words), 1)
+            if idx >= len(word_timings):
+                break
+            start = word_timings[idx]["start"]
+            end_idx = min(idx + n - 1, len(word_timings) - 1)
+            end = word_timings[end_idx]["start"] + word_timings[end_idx]["duration"]
+            dur = max(end - start, 1.2)
+            idx += n
+
+            words = s.split()
+            if len(words) <= 5:
+                display = s
+            else:
+                mid = len(words) // 2
+                display = " ".join(words[:mid]) + "\n" + " ".join(words[mid:])
+
+            txt = TextClip(
+                text=display,
+                font_size=26,
+                color="white",
+                stroke_color="black",
+                stroke_width=5,
+                method="caption",
+                size=(780, None),
+                font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+            )
+            txt = txt.with_start(start).with_duration(dur)
+            txt = txt.with_position(("center", 980))
+            clips.append(txt)
+        return clips
+
+    total_chars = sum(len(s) for s in sentences) or 1
+    current = 0.0
     for s in sentences:
         share = len(s) / total_chars
         dur = max(share * total_duration * 0.90, 1.3)
@@ -251,7 +303,6 @@ def create_subtitles(script, total_duration):
         else:
             mid = len(words) // 2
             display = " ".join(words[:mid]) + "\n" + " ".join(words[mid:])
-
         txt = TextClip(
             text=display,
             font_size=26,
@@ -268,7 +319,7 @@ def create_subtitles(script, total_duration):
         current += dur
     return clips
 
-def create_video(script, audio_file, images, topic, output="video.mp4"):
+def create_video(script, audio_file, images, topic, word_timings, output="video.mp4"):
     audio = AudioFileClip(audio_file)
     duration = audio.duration
     print(f"Ses: {duration:.1f}s")
@@ -283,7 +334,7 @@ def create_video(script, audio_file, images, topic, output="video.mp4"):
     video = concatenate_videoclips(img_clips, method="compose").resized((W, H))
     video = video.with_audio(audio).with_duration(duration)
 
-    layers = [video, create_hook(topic, 5.5)] + create_subtitles(script, duration)
+    layers = [video, create_hook(topic, 5.5)] + create_subtitles(script, duration, word_timings)
     layers.append(create_result_text(script, duration))
 
     final = CompositeVideoClip(layers, size=(W, H)).with_duration(duration).resized((W, H))
@@ -299,7 +350,7 @@ def main():
     script = generate_script(topic)
 
     print("2. Ses...")
-    asyncio.run(text_to_speech(script, "ses.mp3"))
+    word_timings = asyncio.run(text_to_speech(script, "ses.mp3"))
 
     print("3. Görsel...")
     images = download_images(topic, 8)
@@ -308,7 +359,7 @@ def main():
         return
 
     print("4. Video...")
-    create_video(script, "ses.mp3", images, topic)
+    create_video(script, "ses.mp3", images, topic, word_timings)
 
 if __name__ == "__main__":
     main()
