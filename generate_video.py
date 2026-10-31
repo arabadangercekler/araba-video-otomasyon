@@ -56,15 +56,15 @@ async def text_to_speech(text, output_file):
 
 def download_images(topic, count=8):
     images = []
-    # Konudan basit arama kelimeleri çıkar
-    base = "BMW car"
-    low = topic.lower()
-    if "yağ" in low or "bakım" in low:
-        queries = ["BMW engine oil", "BMW engine", "car oil change", "BMW motor"]
-    elif "motor" in low or "dizel" in low:
-        queries = ["BMW diesel engine", "BMW motor", "car engine bay", "BMW car"]
-    else:
-        queries = ["BMW car exterior", "BMW sedan", "BMW rear", "BMW front"]
+    # Sadece BMW odaklı, net aramalar
+    queries = [
+        "BMW car",
+        "BMW sedan",
+        "BMW engine",
+        "BMW motor",
+        "BMW dashboard",
+        "BMW rear light"
+    ]
 
     for q in queries:
         if len(images) >= count:
@@ -72,7 +72,7 @@ def download_images(topic, count=8):
         url = (
             f"https://pixabay.com/api/?key={PIXABAY_KEY}"
             f"&q={q.replace(' ', '+')}&image_type=photo&orientation=vertical"
-            f"&per_page=5&safesearch=true"
+            f"&per_page=8&safesearch=true"
         )
         try:
             r = requests.get(url, timeout=12)
@@ -80,9 +80,12 @@ def download_images(topic, count=8):
             for hit in hits:
                 if len(images) >= count:
                     break
-                # İnsan fotoğrafını azaltmaya çalış
                 tags = (hit.get("tags") or "").lower()
-                if any(x in tags for x in ["people", "person", "man", "woman", "portrait"]):
+                # İnsan ve alakasızları ele
+                if any(x in tags for x in ["people", "person", "man", "woman", "portrait", "building", "architecture", "abstract"]):
+                    continue
+                # BMW veya car geçsin
+                if "bmw" not in tags and "car" not in tags and "auto" not in tags and "vehicle" not in tags:
                     continue
                 img_url = hit.get("largeImageURL") or hit.get("webformatURL")
                 if not img_url:
@@ -95,6 +98,28 @@ def download_images(topic, count=8):
                 print(f"Görsel {len(images)}: {q}")
         except Exception as e:
             print(f"Görsel hatası ({q}): {e}")
+
+    # Yeterli gelmezse basit yedek
+    if len(images) < 3:
+        print("Yedek arama...")
+        url = (
+            f"https://pixabay.com/api/?key={PIXABAY_KEY}"
+            f"&q=BMW+car&image_type=photo&orientation=vertical"
+            f"&per_page={count}&safesearch=true"
+        )
+        try:
+            r = requests.get(url, timeout=12)
+            for i, hit in enumerate(r.json().get("hits", [])[:count]):
+                img_url = hit.get("largeImageURL") or hit.get("webformatURL")
+                if not img_url:
+                    continue
+                data = requests.get(img_url, timeout=10).content
+                filename = f"img_{i}.jpg"
+                with open(filename, "wb") as f:
+                    f.write(data)
+                images.append(filename)
+        except Exception as e:
+            print(f"Yedek hata: {e}")
 
     return images
 
