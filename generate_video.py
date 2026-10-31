@@ -10,6 +10,8 @@ from moviepy import (
     ImageClip, AudioFileClip, TextClip, CompositeVideoClip,
     concatenate_videoclips, ColorClip
 )
+from PIL import Image, ImageDraw, ImageFont
+import numpy as np
 
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 PIXABAY_KEY = os.environ["PIXABAY_API_KEY"]
@@ -20,24 +22,34 @@ W, H = 1080, 1920
 model = genai.GenerativeModel(MODEL_NAME)
 
 FALLBACK_SCRIPT = """
-BMW 200 bin kilometre sonra bozulur mu? Birçok kişi servise gider gitmez bunu duyuyor. 
-Aslında N57 dizel motorlar düzenli bakımlıysa 400 bin kilometreyi rahat görüyor. 
-Asıl sorun ucuz yağ, geç değiştirilen filtre ve soğuk motora basılan gaz. 
-Zincir germe sorunları da bakımsız araçlarda çıkıyor. 
-Bakımı yapılan BMW uzun yaşar. Bu iddia tamamen yalan.
+BMW 200 bin kilometre sonra bozulur mu? Birçok kişi bunu doğru sanıyor. 
+Aslında düzenli bakımlı bir BMW 300-400 bin kilometreyi rahat görüyor. 
+Asıl sorun ucuz yağ ve ihmal edilen bakımlar. 
+Bakım yapılırsa uzun ömürlü olur. Bu iddia tamamen yalan.
 """
+
+TOPICS = [
+    "BMW arabalar 200 bin km sonra sürekli arıza yapar yalanı",
+    "Dizel motorlar benzinliye göre daha dayanıklı mı gerçek mi",
+    "Yeni araba almak eski arabadan daha kârlı mı yalanı",
+    "Otomatik vitesli arabalar daha çabuk bozulur yalanı",
+    "Yüksek oktanlı benzin motoru temizler gerçek mi",
+    "Kışın arabayı ısıtmadan sürmek motoru bozar yalanı",
+    "Elektrikli arabalar 5 yılda bataryası biter yalanı",
+    "Turbo motorlar bakımsızlığa daha dayanıksız gerçek mi",
+]
 
 def generate_script(topic):
     try:
         response = model.generate_content(f"""
 Sen profesyonel Türk YouTube Shorts senaristisin.
 Konu: {topic}
-40-50 saniyelik senaryo yaz.
+55-65 saniyelik senaryo yaz. En az 6-7 cümle olsun.
 İlk 5 saniyede kanca olsun.
+Somut bilgi ver.
 En sonda net söyle: "Bu iddia tamamen yalan." veya "Bu gerçek."
 Çok basit kelimeler kullan. Herkesin anlayacağı günlük dil.
-Ağır kelimeler kullanma.
-Sadece konuşma metni. Türkçe. Max 90 kelime.
+Sadece konuşma metni. Türkçe.
 """)
         text = response.text.strip()
         if text and len(text) > 30:
@@ -56,7 +68,6 @@ async def text_to_speech(text, output_file):
 
 def download_images(topic, count=8):
     images = []
-    # Sadece BMW odaklı, net aramalar
     queries = [
         "BMW car",
         "BMW sedan",
@@ -65,7 +76,6 @@ def download_images(topic, count=8):
         "BMW dashboard",
         "BMW rear light"
     ]
-
     for q in queries:
         if len(images) >= count:
             break
@@ -81,10 +91,8 @@ def download_images(topic, count=8):
                 if len(images) >= count:
                     break
                 tags = (hit.get("tags") or "").lower()
-                # İnsan ve alakasızları ele
                 if any(x in tags for x in ["people", "person", "man", "woman", "portrait", "building", "architecture", "abstract"]):
                     continue
-                # BMW veya car geçsin
                 if "bmw" not in tags and "car" not in tags and "auto" not in tags and "vehicle" not in tags:
                     continue
                 img_url = hit.get("largeImageURL") or hit.get("webformatURL")
@@ -99,7 +107,6 @@ def download_images(topic, count=8):
         except Exception as e:
             print(f"Görsel hatası ({q}): {e}")
 
-    # Yeterli gelmezse basit yedek
     if len(images) < 3:
         print("Yedek arama...")
         url = (
@@ -120,7 +127,6 @@ def download_images(topic, count=8):
                 images.append(filename)
         except Exception as e:
             print(f"Yedek hata: {e}")
-
     return images
 
 def make_clip(img_path, duration, move_type=0):
@@ -142,13 +148,17 @@ def make_clip(img_path, duration, move_type=0):
     final = CompositeVideoClip([bg, clip.with_position("center")], size=(W, H))
     return final.with_duration(duration).resized((W, H))
 
-def create_hook(duration=5.5):
-    from PIL import Image, ImageDraw, ImageFont
-    import numpy as np
+def create_hook(script, duration=5.5):
+    first = script.strip().split("?")[0] + "?" if "?" in script else script.strip().split(".")[0]
+    first = first.strip()
+    if len(first) > 55:
+        words = first.split()
+        mid = len(words) // 2
+        lines = [" ".join(words[:mid]), " ".join(words[mid:])]
+    else:
+        lines = [first]
 
-    lines = ["BMW 200 BIN KM SONRA", "BOZULUR MU?"]
-    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 42)
-
+    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 38)
     dummy = Image.new("RGBA", (10, 10))
     d = ImageDraw.Draw(dummy)
     widths, heights = [], []
@@ -157,7 +167,7 @@ def create_hook(duration=5.5):
         widths.append(bbox[2] - bbox[0])
         heights.append(bbox[3] - bbox[1])
     tw = max(widths) + 50
-    th = sum(heights) + 50  # alt boşluk fazla
+    th = sum(heights) + 50
 
     img = Image.new("RGBA", (tw, th), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
@@ -174,9 +184,6 @@ def create_hook(duration=5.5):
     return clip.with_position((50, 200))
 
 def create_result_text(script, total_duration):
-    from PIL import Image, ImageDraw, ImageFont
-    import numpy as np
-
     low = script.lower()
     if "gerçek" in low:
         word, color = "GERÇEK", (0, 200, 0)
@@ -194,18 +201,12 @@ def create_result_text(script, total_duration):
     for dx, dy in [(-5,-5),(-5,5),(5,-5),(5,5),(-5,0),(5,0),(0,-5),(0,5)]:
         draw.text((40+dx, 40+dy), word, font=font, fill=(0, 0, 0, 255))
     draw.text((40, 40), word, font=font, fill=color + (255,))
-
     img = img.rotate(12, expand=True, fillcolor=(0, 0, 0, 0))
 
     arr = np.array(img)
     clip = ImageClip(arr).with_duration(2.0)
     start = max(total_duration - 2.0, 0)
     return clip.with_start(start).with_position(("center", 560))
-
-    arr = np.array(img)
-    clip = ImageClip(arr).with_duration(2.0)
-    start = max(total_duration - 2.0, 0)
-    return clip.with_start(start).with_position(("center", 580))
 
 def create_subtitles(script, total_duration):
     sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script) if len(s.strip()) > 3]
@@ -229,7 +230,6 @@ def create_subtitles(script, total_duration):
     for s in sentences:
         share = len(s) / total_chars
         dur = max(share * total_duration * 0.90, 1.3)
-
         words = s.split()
         if len(words) <= 5:
             display = s
@@ -251,7 +251,6 @@ def create_subtitles(script, total_duration):
         txt = txt.with_position(("center", 980))
         clips.append(txt)
         current += dur
-
     return clips
 
 def create_video(script, audio_file, images, output="video.mp4"):
@@ -269,7 +268,7 @@ def create_video(script, audio_file, images, output="video.mp4"):
     video = concatenate_videoclips(img_clips, method="compose").resized((W, H))
     video = video.with_audio(audio).with_duration(duration)
 
-    layers = [video, create_hook(5.5)] + create_subtitles(script, duration)
+    layers = [video, create_hook(script, 5.5)] + create_subtitles(script, duration)
     layers.append(create_result_text(script, duration))
 
     final = CompositeVideoClip(layers, size=(W, H)).with_duration(duration).resized((W, H))
@@ -278,7 +277,8 @@ def create_video(script, audio_file, images, output="video.mp4"):
     return output
 
 def main():
-    topic = "BMW arabalar 200 bin km sonra sürekli arıza yapar yalanı"
+    topic = random.choice(TOPICS)
+    print(f"Konu: {topic}")
 
     print("1. Senaryo...")
     script = generate_script(topic)
