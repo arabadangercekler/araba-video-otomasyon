@@ -21,6 +21,17 @@ W, H = 1080, 1920
 
 model = genai.GenerativeModel(MODEL_NAME)
 
+TOPICS = [
+    "BMW arabalar 200 bin km sonra sürekli arıza yapar yalanı",
+    "Dizel motorlar benzinliye göre daha dayanıklı mı gerçek mi",
+    "Yeni araba almak eski arabadan daha kârlı mı yalanı",
+    "Otomatik vitesli arabalar daha çabuk bozulur yalanı",
+    "Yüksek oktanlı benzin motoru temizler gerçek mi",
+    "Kışın arabayı ısıtmadan sürmek motoru bozar yalanı",
+    "Elektrikli arabalar 5 yılda bataryası biter yalanı",
+    "Turbo motorlar bakımsızlığa daha dayanıksız gerçek mi",
+]
+
 FALLBACKS = {
     "bmw": """
 BMW 200 bin kilometre sonra bozulur mu? Birçok kişi serviste bunu duyuyor.
@@ -86,7 +97,7 @@ Sen profesyonel Türk YouTube Shorts senaristisin.
 Konu: {topic}
 55-65 saniyelik senaryo yaz. En az 6-7 cümle olsun.
 İlk cümle dikkat çekici soru olsun.
-SOMATİK bilgi ver (motor tipi, km, sistem adı gibi).
+Somut bilgi ver (motor tipi, km, sistem adı gibi).
 ASLA şunu deme: "iyi bakarsan uzun sürer", "kaliteli yağ koy", "düzenli bakım yap".
 Herkesin bildiği genel laflar yasak.
 En sonda net söyle: "Bu iddia tamamen yalan." veya "Bu gerçek."
