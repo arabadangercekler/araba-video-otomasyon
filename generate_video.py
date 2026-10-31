@@ -253,7 +253,7 @@ def create_video(script, audio_file, images, output="video.mp4"):
     return output
 
 def main():
-    images = download_images(topic, 8)
+    topic = "BMW arabalar 200 bin km sonra sürekli arıza yapar yalanı"
 
     print("1. Senaryo...")
     script = generate_script(topic)
@@ -262,7 +262,7 @@ def main():
     asyncio.run(text_to_speech(script, "ses.mp3"))
 
     print("3. Görsel...")
-    images = download_images(8)
+    images = download_images(topic, 8)
     if len(images) < 3:
         print("Görsel yetersiz")
         return
