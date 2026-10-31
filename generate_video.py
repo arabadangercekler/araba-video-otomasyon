@@ -21,23 +21,63 @@ W, H = 1080, 1920
 
 model = genai.GenerativeModel(MODEL_NAME)
 
-FALLBACK_SCRIPT = """
-BMW 200 bin kilometre sonra bozulur mu? Birçok kişi bunu doğru sanıyor. 
-Aslında düzenli bakımlı bir BMW 300-400 bin kilometreyi rahat görüyor. 
-Asıl sorun ucuz yağ ve ihmal edilen bakımlar. 
-Bakım yapılırsa uzun ömürlü olur. Bu iddia tamamen yalan.
+FALLBACKS = {
+    "bmw": """
+BMW 200 bin kilometre sonra bozulur mu? Birçok kişi serviste bunu duyuyor.
+N57 dizel motorlar düzenli bakımlıysa 400 bin kilometreyi rahat görüyor.
+Asıl sorun geç yağ değişimi ve soğuk motora basılan gaz.
+Zincir germe sorunları da bakımsız araçlarda çıkıyor.
+Bu iddia tamamen yalan.
+""",
+    "turbo": """
+Turbo motorlar daha çabuk bozulur mu? Birçok kişi bundan korkuyor.
+Aslında turbo, yağ soğutması düzgün yapılırsa uzun ömürlü oluyor.
+Motoru stop etmeden önce 1 dakika rölantide beklemek önemli.
+Ucuz yağ ve ihmal edilen yağ değişimi asıl suçlu.
+Bu iddia tamamen yalan.
+""",
+    "dizel": """
+Dizel motorlar benzinliye göre daha dayanıklı mı?
+Eski dizeller yüksek tork ve uzun ömürle biliniyordu.
+Yeni dizellerde partikül filtresi ve adblue sistemleri ekstra bakım istiyor.
+Bakım aksarsa benzinliden daha pahalıya patlayabiliyor.
+Bu tamamen aracın kullanımına bağlı. Bu gerçek.
+""",
+    "elektrikli": """
+Elektrikli arabaların bataryası 5 yılda biter mi?
+Üreticiler genelde 8 yıl veya 160 bin km garanti veriyor.
+Gerçek hayatta çoğu batarya 10-15 yıl dayanıyor.
+Hızlı şarjın sık kullanımı ömrü biraz kısaltabiliyor.
+5 yılda biter demek abartı. Bu iddia tamamen yalan.
+""",
+    "otomatik": """
+Otomatik vitesli arabalar daha çabuk bozulur mu?
+Eski otomatikler bakım isterdi ama yeni şanzımanlar daha dayanıklı.
+Yağ değişimi yapılmazsa sorun çıkar, bu da manuelde de olur.
+Doğru kullanımda otomatik vites uzun yaşar.
+Bu iddia tamamen yalan.
+""",
+    "default": """
+Arabalar hakkında duyduğunuz bazı bilgiler yanlış.
+Somut verilere bakmak lazım, genel laflara değil.
+Bakım ve kullanım şekli her şeyden önemli.
+Bu iddia tamamen yalan.
 """
+}
 
-TOPICS = [
-    "BMW arabalar 200 bin km sonra sürekli arıza yapar yalanı",
-    "Dizel motorlar benzinliye göre daha dayanıklı mı gerçek mi",
-    "Yeni araba almak eski arabadan daha kârlı mı yalanı",
-    "Otomatik vitesli arabalar daha çabuk bozulur yalanı",
-    "Yüksek oktanlı benzin motoru temizler gerçek mi",
-    "Kışın arabayı ısıtmadan sürmek motoru bozar yalanı",
-    "Elektrikli arabalar 5 yılda bataryası biter yalanı",
-    "Turbo motorlar bakımsızlığa daha dayanıksız gerçek mi",
-]
+def pick_fallback(topic):
+    t = topic.lower()
+    if "bmw" in t:
+        return FALLBACKS["bmw"].strip()
+    if "turbo" in t:
+        return FALLBACKS["turbo"].strip()
+    if "dizel" in t:
+        return FALLBACKS["dizel"].strip()
+    if "elektrikli" in t or "batarya" in t:
+        return FALLBACKS["elektrikli"].strip()
+    if "otomatik" in t:
+        return FALLBACKS["otomatik"].strip()
+    return FALLBACKS["default"].strip()
 
 def generate_script(topic):
     try:
@@ -45,20 +85,21 @@ def generate_script(topic):
 Sen profesyonel Türk YouTube Shorts senaristisin.
 Konu: {topic}
 55-65 saniyelik senaryo yaz. En az 6-7 cümle olsun.
-İlk 5 saniyede kanca olsun.
-Somut bilgi ver.
+İlk cümle dikkat çekici soru olsun.
+SOMATİK bilgi ver (motor tipi, km, sistem adı gibi).
+ASLA şunu deme: "iyi bakarsan uzun sürer", "kaliteli yağ koy", "düzenli bakım yap".
+Herkesin bildiği genel laflar yasak.
 En sonda net söyle: "Bu iddia tamamen yalan." veya "Bu gerçek."
-Çok basit kelimeler kullan. Herkesin anlayacağı günlük dil.
-Sadece konuşma metni. Türkçe.
+Çok basit kelimeler. Sadece konuşma metni. Türkçe.
 """)
         text = response.text.strip()
-        if text and len(text) > 30:
+        if text and len(text) > 40:
             print("Gemini senaryosu alındı")
             return text
     except Exception as e:
         print(f"Gemini hatası: {e}")
-    print("Yedek senaryo kullanılıyor")
-    return FALLBACK_SCRIPT.strip()
+    print("Yedek senaryo (konuya uygun)")
+    return pick_fallback(topic)
 
 async def text_to_speech(text, output_file):
     clean = text.replace(". ", ", ").replace("! ", ", ").replace("? ", ", ")
