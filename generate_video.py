@@ -148,17 +148,30 @@ def make_clip(img_path, duration, move_type=0):
     final = CompositeVideoClip([bg, clip.with_position("center")], size=(W, H))
     return final.with_duration(duration).resized((W, H))
 
-def create_hook(script, duration=5.5):
-    first = script.strip().split("?")[0] + "?" if "?" in script else script.strip().split(".")[0]
-    first = first.strip()
-    if len(first) > 55:
-        words = first.split()
-        mid = len(words) // 2
-        lines = [" ".join(words[:mid]), " ".join(words[mid:])]
+def create_hook(topic, duration=5.5):
+    # Konudan kısa başlık çıkar
+    t = topic.lower()
+    if "bmw" in t and "200" in t:
+        lines = ["BMW 200 BIN KM SONRA", "BOZULUR MU?"]
+    elif "otomatik vites" in t:
+        lines = ["OTOMATIK VITES", "BOZULUR MU?"]
+    elif "dizel" in t:
+        lines = ["DIZEL MOTOR", "DAHA DAYANIKLI MI?"]
+    elif "elektrikli" in t or "batarya" in t:
+        lines = ["ELEKTRIKLI ARABA", "BATARYASI BITER MI?"]
+    elif "turbo" in t:
+        lines = ["TURBO MOTOR", "DAHA CABUK BOZULUR MU?"]
+    elif "oktan" in t or "benzin" in t:
+        lines = ["YUKSEK OKTANLI BENZIN", "MOTORU TEMIZLER MI?"]
+    elif "isıtmadan" in t or "kışın" in t:
+        lines = ["KISIN ARABAYI", "ISITMADAN SURMEK ZARARLI MI?"]
+    elif "yeni araba" in t:
+        lines = ["YENI ARABA ALMAK", "DAHA KARLI MI?"]
     else:
-        lines = [first]
+        words = topic.split()
+        lines = [" ".join(words[:3]).upper(), " ".join(words[3:6]).upper() + "?"]
 
-    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 38)
+    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 40)
     dummy = Image.new("RGBA", (10, 10))
     d = ImageDraw.Draw(dummy)
     widths, heights = [], []
@@ -184,8 +197,10 @@ def create_hook(script, duration=5.5):
     return clip.with_position((50, 200))
 
 def create_result_text(script, total_duration):
-    low = script.lower()
-    if "gerçek" in low:
+    tail = script.lower()[-80:]
+    if "yalan" in tail:
+        word, color = "YALAN", (220, 30, 30)
+    elif "bu gerçek" in tail or tail.strip().endswith("gerçek.") or tail.strip().endswith("gerçek"):
         word, color = "GERÇEK", (0, 200, 0)
     else:
         word, color = "YALAN", (220, 30, 30)
@@ -253,7 +268,7 @@ def create_subtitles(script, total_duration):
         current += dur
     return clips
 
-def create_video(script, audio_file, images, output="video.mp4"):
+def create_video(script, audio_file, images, topic, output="video.mp4"):
     audio = AudioFileClip(audio_file)
     duration = audio.duration
     print(f"Ses: {duration:.1f}s")
@@ -268,7 +283,7 @@ def create_video(script, audio_file, images, output="video.mp4"):
     video = concatenate_videoclips(img_clips, method="compose").resized((W, H))
     video = video.with_audio(audio).with_duration(duration)
 
-    layers = [video, create_hook(script, 5.5)] + create_subtitles(script, duration)
+    layers = [video, create_hook(topic, 5.5)] + create_subtitles(script, duration)
     layers.append(create_result_text(script, duration))
 
     final = CompositeVideoClip(layers, size=(W, H)).with_duration(duration).resized((W, H))
@@ -293,7 +308,7 @@ def main():
         return
 
     print("4. Video...")
-    create_video(script, "ses.mp3", images)
+    create_video(script, "ses.mp3", images, topic)
 
 if __name__ == "__main__":
     main()
