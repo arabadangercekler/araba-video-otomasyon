@@ -54,28 +54,48 @@ async def text_to_speech(text, output_file):
     await communicate.save(output_file)
     print("Ses oluşturuldu")
 
-def download_images(count=8):
+def download_images(topic, count=8):
     images = []
-    url = (
-        f"https://pixabay.com/api/?key={PIXABAY_KEY}"
-        f"&q=BMW+car&image_type=photo&orientation=vertical"
-        f"&per_page={count}&safesearch=true"
-    )
-    try:
-        r = requests.get(url, timeout=12)
-        hits = r.json().get("hits", [])
-        for i, hit in enumerate(hits[:count]):
-            img_url = hit.get("largeImageURL") or hit.get("webformatURL")
-            if not img_url:
-                continue
-            data = requests.get(img_url, timeout=10).content
-            filename = f"img_{i}.jpg"
-            with open(filename, "wb") as f:
-                f.write(data)
-            images.append(filename)
-            print(f"Görsel {i+1}")
-    except Exception as e:
-        print(f"Görsel hatası: {e}")
+    # Konudan basit arama kelimeleri çıkar
+    base = "BMW car"
+    low = topic.lower()
+    if "yağ" in low or "bakım" in low:
+        queries = ["BMW engine oil", "BMW engine", "car oil change", "BMW motor"]
+    elif "motor" in low or "dizel" in low:
+        queries = ["BMW diesel engine", "BMW motor", "car engine bay", "BMW car"]
+    else:
+        queries = ["BMW car exterior", "BMW sedan", "BMW rear", "BMW front"]
+
+    for q in queries:
+        if len(images) >= count:
+            break
+        url = (
+            f"https://pixabay.com/api/?key={PIXABAY_KEY}"
+            f"&q={q.replace(' ', '+')}&image_type=photo&orientation=vertical"
+            f"&per_page=5&safesearch=true"
+        )
+        try:
+            r = requests.get(url, timeout=12)
+            hits = r.json().get("hits", [])
+            for hit in hits:
+                if len(images) >= count:
+                    break
+                # İnsan fotoğrafını azaltmaya çalış
+                tags = (hit.get("tags") or "").lower()
+                if any(x in tags for x in ["people", "person", "man", "woman", "portrait"]):
+                    continue
+                img_url = hit.get("largeImageURL") or hit.get("webformatURL")
+                if not img_url:
+                    continue
+                data = requests.get(img_url, timeout=10).content
+                filename = f"img_{len(images)}.jpg"
+                with open(filename, "wb") as f:
+                    f.write(data)
+                images.append(filename)
+                print(f"Görsel {len(images)}: {q}")
+        except Exception as e:
+            print(f"Görsel hatası ({q}): {e}")
+
     return images
 
 def make_clip(img_path, duration, move_type=0):
@@ -233,7 +253,7 @@ def create_video(script, audio_file, images, output="video.mp4"):
     return output
 
 def main():
-    topic = "BMW arabalar 200 bin km sonra sürekli arıza yapar yalanı"
+    images = download_images(topic, 8)
 
     print("1. Senaryo...")
     script = generate_script(topic)
