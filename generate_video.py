@@ -106,28 +106,27 @@ def create_hook(duration=5.5):
 
     dummy = Image.new("RGBA", (10, 10))
     d = ImageDraw.Draw(dummy)
-    widths = []
-    heights = []
+    widths, heights = [], []
     for line in lines:
         bbox = d.textbbox((0, 0), line, font=font)
         widths.append(bbox[2] - bbox[0])
         heights.append(bbox[3] - bbox[1])
-    tw = max(widths) + 40
-    th = sum(heights) + 20
+    tw = max(widths) + 50
+    th = sum(heights) + 50  # alt boşluk fazla
 
     img = Image.new("RGBA", (tw, th), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
-    y = 5
+    y = 10
     for i, line in enumerate(lines):
         x = (tw - widths[i]) // 2
         for dx, dy in [(-3,-3),(-3,3),(3,-3),(3,3),(-3,0),(3,0),(0,-3),(0,3)]:
             draw.text((x+dx, y+dy), line, font=font, fill=(0, 0, 0, 255))
         draw.text((x, y), line, font=font, fill=(255, 255, 255, 255))
-        y += heights[i] + 8
+        y += heights[i] + 10
 
     arr = np.array(img)
     clip = ImageClip(arr).with_duration(duration)
-    return clip.with_position((60, 220))
+    return clip.with_position((50, 200))
 
 def create_result_text(script, total_duration):
     from PIL import Image, ImageDraw, ImageFont
@@ -139,20 +138,24 @@ def create_result_text(script, total_duration):
     else:
         word, color = "YALAN", (220, 30, 30)
 
-    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 90)
+    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 105)
     dummy = Image.new("RGBA", (10, 10))
     d = ImageDraw.Draw(dummy)
     bbox = d.textbbox((0, 0), word, font=font)
     tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
 
-    img = Image.new("RGBA", (tw + 60, th + 60), (0, 0, 0, 0))
+    img = Image.new("RGBA", (tw + 80, th + 80), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
-    for dx, dy in [(-4,-4),(-4,4),(4,-4),(4,4),(-4,0),(4,0),(0,-4),(0,4)]:
-        draw.text((30+dx, 30+dy), word, font=font, fill=(0, 0, 0, 255))
-    draw.text((30, 30), word, font=font, fill=color + (255,))
+    for dx, dy in [(-5,-5),(-5,5),(5,-5),(5,5),(-5,0),(5,0),(0,-5),(0,5)]:
+        draw.text((40+dx, 40+dy), word, font=font, fill=(0, 0, 0, 255))
+    draw.text((40, 40), word, font=font, fill=color + (255,))
 
-    # Hafif çapraz damga efekti
     img = img.rotate(12, expand=True, fillcolor=(0, 0, 0, 0))
+
+    arr = np.array(img)
+    clip = ImageClip(arr).with_duration(2.0)
+    start = max(total_duration - 2.0, 0)
+    return clip.with_start(start).with_position(("center", 560))
 
     arr = np.array(img)
     clip = ImageClip(arr).with_duration(2.0)
