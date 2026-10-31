@@ -37,42 +37,57 @@ FALLBACKS = {
 BMW 200 bin kilometre sonra bozulur mu? Birçok kişi serviste bunu duyuyor.
 N57 dizel motorlar düzenli bakımlıysa 400 bin kilometreyi rahat görüyor.
 Asıl sorun geç yağ değişimi ve soğuk motora basılan gaz.
-Zincir germe sorunları da bakımsız araçlarda çıkıyor.
+Zincir germe sorunları bakımsız araçlarda çıkıyor.
 Bu iddia tamamen yalan.
 """,
     "turbo": """
 Turbo motorlar daha çabuk bozulur mu? Birçok kişi bundan korkuyor.
-Aslında turbo, yağ soğutması düzgün yapılırsa uzun ömürlü oluyor.
+Turbo, yağ soğutması düzgün yapılırsa uzun ömürlü oluyor.
 Motoru stop etmeden önce 1 dakika rölantide beklemek önemli.
-Ucuz yağ ve ihmal edilen yağ değişimi asıl suçlu.
+Ucuz yağ ve ihmal asıl suçlu.
 Bu iddia tamamen yalan.
 """,
     "dizel": """
 Dizel motorlar benzinliye göre daha dayanıklı mı?
 Eski dizeller yüksek tork ve uzun ömürle biliniyordu.
-Yeni dizellerde partikül filtresi ve adblue sistemleri ekstra bakım istiyor.
+Yeni dizellerde partikül filtresi ve adblue ekstra bakım istiyor.
 Bakım aksarsa benzinliden daha pahalıya patlayabiliyor.
-Bu tamamen aracın kullanımına bağlı. Bu gerçek.
+Bu tamamen aracın kullanımına bağlı.
 """,
     "elektrikli": """
 Elektrikli arabaların bataryası 5 yılda biter mi?
 Üreticiler genelde 8 yıl veya 160 bin km garanti veriyor.
 Gerçek hayatta çoğu batarya 10-15 yıl dayanıyor.
-Hızlı şarjın sık kullanımı ömrü biraz kısaltabiliyor.
+Sık hızlı şarj ömrü biraz kısaltabiliyor.
 5 yılda biter demek abartı. Bu iddia tamamen yalan.
 """,
     "otomatik": """
 Otomatik vitesli arabalar daha çabuk bozulur mu?
-Eski otomatikler bakım isterdi ama yeni şanzımanlar daha dayanıklı.
-Yağ değişimi yapılmazsa sorun çıkar, bu da manuelde de olur.
+Eski otomatikler bakım isterdi, yeniler daha dayanıklı.
+Yağ değişimi yapılmazsa sorun çıkar.
 Doğru kullanımda otomatik vites uzun yaşar.
 Bu iddia tamamen yalan.
 """,
-    "default": """
-Arabalar hakkında duyduğunuz bazı bilgiler yanlış.
-Somut verilere bakmak lazım, genel laflara değil.
-Bakım ve kullanım şekli her şeyden önemli.
+    "oktan": """
+Yüksek oktanlı benzin motoru temizler mi?
+Oktan sayısı vuruntuyu önler, motoru temizlemez.
+Motorun istediği oktanın üstüne çıkmak güç artırmaz.
+Temizlik için özel katkı gerekir, pahalı benzin değil.
 Bu iddia tamamen yalan.
+""",
+    "kisin": """
+Kışın arabayı ısıtmadan sürmek motoru bozar mı?
+Modern motorlar ısıtılmadan da sürülebilir.
+İlk 1-2 km yumuşak kullanmak yeterli.
+Uzun süre rölantide ısıtmak hem yakıt yer hem çevreye zarar.
+Bu iddia abartılı.
+""",
+    "yeni": """
+Yeni araba almak eski arabadan daha kârlı mı?
+İlk 3 yılda yeni araba değer kaybı yüksektir.
+Bakımlı 2-3 yaşındaki araç çoğu zaman daha mantıklı.
+Sigorta ve vergi de yeni arabada daha pahalı olabilir.
+Her zaman yeni almak kârlı değil.
 """
 }
 
@@ -88,7 +103,13 @@ def pick_fallback(topic):
         return FALLBACKS["elektrikli"].strip()
     if "otomatik" in t:
         return FALLBACKS["otomatik"].strip()
-    return FALLBACKS["default"].strip()
+    if "oktan" in t or "benzin" in t:
+        return FALLBACKS["oktan"].strip()
+    if "kışın" in t or "isıtmadan" in t:
+        return FALLBACKS["kisin"].strip()
+    if "yeni araba" in t:
+        return FALLBACKS["yeni"].strip()
+    return FALLBACKS["oktan"].strip()
 
 def generate_script(topic):
     try:
@@ -100,8 +121,7 @@ Konu: {topic}
 Somut bilgi ver (motor tipi, km, sistem adı gibi).
 ASLA şunu deme: "iyi bakarsan uzun sürer", "kaliteli yağ koy", "düzenli bakım yap".
 Herkesin bildiği genel laflar yasak.
-En sonda net söyle: "Bu iddia tamamen yalan." veya "Bu gerçek."
-Çok basit kelimeler. Sadece konuşma metni. Türkçe.
+Konuya özel konuş. Sadece konuşma metni. Türkçe.
 """)
         text = response.text.strip()
         if text and len(text) > 40:
@@ -143,6 +163,8 @@ def download_images(topic, count=8):
         queries = ["turbo engine", "car turbo", "car engine bay"]
     elif "bmw" in t:
         queries = ["BMW car", "BMW sedan", "BMW engine", "BMW rear"]
+    elif "oktan" in t or "benzin" in t:
+        queries = ["gas station", "car fuel", "petrol pump", "car engine"]
     else:
         queries = ["car exterior", "sedan car", "car engine", "car dashboard"]
 
@@ -272,7 +294,7 @@ def create_result_text(script, total_duration):
     elif "bu gerçek" in tail or tail.strip().endswith("gerçek.") or tail.strip().endswith("gerçek"):
         word, color = "GERÇEK", (0, 200, 0)
     else:
-        word, color = "YALAN", (220, 30, 30)
+        return None
 
     font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 105)
     dummy = Image.new("RGBA", (10, 10))
@@ -387,7 +409,9 @@ def create_video(script, audio_file, images, topic, word_timings, output="video.
     video = video.with_audio(audio).with_duration(duration)
 
     layers = [video, create_hook(topic, 5.5)] + create_subtitles(script, duration, word_timings)
-    layers.append(create_result_text(script, duration))
+    result = create_result_text(script, duration)
+    if result is not None:
+        layers.append(result)
 
     final = CompositeVideoClip(layers, size=(W, H)).with_duration(duration).resized((W, H))
     final.write_videofile(output, fps=24, codec="libx264", audio_codec="aac", logger=None)
