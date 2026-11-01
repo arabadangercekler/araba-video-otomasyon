@@ -36,10 +36,11 @@ TOPICS = [
 FALLBACKS = {
     "bmw": """
 BMW 200 bin kilometre sonra bozulur mu sanıyorsun?
-Sana bir sır vereyim: Düzenli bakımlı BMW'ler 400 bin kilometreyi rahat görüyor.
+Sana büyük bir sır vereyim: Düzenli bakımlı BMW'ler 400 bin kilometreyi rahat görüyor.
 Asıl sorun geç yağ değişimi ve soğuk motora basılan gaz.
 Bakımı yapılan araçta zincir sorunu bile geç çıkar.
 Bu iddia tamamen yalan.
+Bu videoyu hemen babana gönder de o da gerçeği öğrensin.
 """,
     "kisin": """
 Kışın arabayı dakikalarca boşta ısıtmazsan motorun bozulacağını mı sanıyorsun?
@@ -53,48 +54,55 @@ Arabayı çalıştır, kemerini tak, aynaları kontrol et.
 Yirmi otuz saniye bekle ve hemen yola çık.
 Sadece araba ısınana kadar gaza sonuna kadar basma.
 Motor hareket ettikçe daha hızlı ve sağlıklı ısınır.
+Bu videoyu hemen babana gönder de o da gerçeği öğrensin.
 """,
     "turbo": """
 Turbo motorlar daha çabuk bozulur mu sanıyorsun?
-Sana bir sır vereyim: Yağ soğutması düzgün yapılırsa turbo uzun ömürlü oluyor.
+Sana büyük bir sır vereyim: Yağ soğutması düzgün yapılırsa turbo uzun ömürlü oluyor.
 Motoru stop etmeden önce bir dakika rölantide beklemek önemli.
 Ucuz yağ ve ihmal asıl suçlu.
 Bu iddia tamamen yalan.
+Bu videoyu hemen babana gönder de o da gerçeği öğrensin.
 """,
     "dizel": """
 Dizel motorlar benzinliye göre daha dayanıklı mı sanıyorsun?
-Eski dizeller gerçekten uzun yaşardı.
+Sana büyük bir sır vereyim: Eski dizeller gerçekten uzun yaşardı.
 Yeni dizellerde ekstra sistemler var, bakım ister.
 Bakım yapılmazsa masrafı benzinliden fazla çıkabiliyor.
 Dayanıklılık aracın kullanımına bağlı.
+Bu videoyu hemen babana gönder de o da gerçeği öğrensin.
 """,
     "elektrikli": """
 Elektrikli arabaların bataryası 5 yılda biter mi sanıyorsun?
-Sana bir sır vereyim: Üreticiler genelde 8 yıl veya 160 bin kilometre garanti veriyor.
+Sana büyük bir sır vereyim: Üreticiler genelde 8 yıl veya 160 bin kilometre garanti veriyor.
 Gerçek hayatta çoğu batarya 10-15 yıl dayanıyor.
 Sık hızlı şarj ömrü biraz kısaltabiliyor.
 5 yılda biter demek abartı. Bu iddia tamamen yalan.
+Bu videoyu hemen babana gönder de o da gerçeği öğrensin.
 """,
     "otomatik": """
 Otomatik vitesli arabalar daha çabuk bozulur mu sanıyorsun?
-Eski otomatikler bakım isterdi, yeniler daha dayanıklı.
+Sana büyük bir sır vereyim: Eski otomatikler bakım isterdi, yeniler daha dayanıklı.
 Yağ değişimi yapılmazsa sorun çıkar.
 Doğru kullanımda otomatik vites uzun yaşar.
 Bu iddia tamamen yalan.
+Bu videoyu hemen babana gönder de o da gerçeği öğrensin.
 """,
     "oktan": """
 Yüksek oktanlı benzin motoru temizler mi sanıyorsun?
-Sana bir sır vereyim: Oktan sayısı vuruntuyu önler, motoru temizlemez.
+Sana büyük bir sır vereyim: Oktan sayısı vuruntuyu önler, motoru temizlemez.
 Motorun istediği oktanın üstüne çıkmak güç artırmaz.
 Temizlik için özel katkı gerekir, pahalı benzin değil.
 Bu iddia tamamen yalan.
+Bu videoyu hemen babana gönder de o da gerçeği öğrensin.
 """,
     "yeni": """
 Yeni araba almak eski arabadan daha kârlı mı sanıyorsun?
-Sana bir sır vereyim: İlk 3 yılda yeni araba değer kaybı yüksektir.
+Sana büyük bir sır vereyim: İlk 3 yılda yeni araba değer kaybı yüksektir.
 Bakımlı 2-3 yaşındaki araç çoğu zaman daha mantıklı.
 Sigorta ve vergi de yeni arabada daha pahalı olabilir.
 Her zaman yeni almak kârlı değil.
+Bu videoyu hemen babana gönder de o da gerçeği öğrensin.
 """
 }
 
@@ -139,14 +147,15 @@ def generate_script(topic):
 Sen Türk YouTube Shorts için samimi bir araba kanalı sunucususun.
 Konu: {topic}
 
-Tarza uy:
-- İzleyiciye "sen" diye konuş.
-- İlk cümle güçlü bir soru veya "sana bir sır vereyim" tarzı olsun.
-- Kısa, net cümleler. Konuşur gibi yaz.
-- Teknik terim yok. Ortaokul seviyesi.
-- "km" yazma, "kilometre" yaz.
-- Sonunda abone / paylaş çağrısı yapma, sadece konuyu bitir.
-- 50-55 saniye. Sadece konuşma metni. Türkçe.
+ZORUNLU TARZ:
+1. İlk cümle: İzleyiciye "sanıyorsun?" diye biten güçlü bir soru.
+2. İkinci cümle: "Sana büyük bir sır vereyim:" veya "Sana bir sır vereyim:" ile başlasın.
+3. Kısa cümleler. Konuşur gibi yaz. Teknik kelime yok.
+4. "km" yazma, "kilometre" yaz.
+5. Son 1-2 cümle mutlaka şöyle bitsin:
+   "Bu videoyu hemen babana gönder de o da gerçeği öğrensin."
+   veya benzer samimi gönder çağrısı.
+6. 50-55 saniye. Sadece konuşma metni. Türkçe.
 """)
         text = response.text.strip()
         if text and len(text) > 40:
