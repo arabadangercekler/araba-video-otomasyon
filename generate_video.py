@@ -9,7 +9,7 @@ import google.generativeai as genai
 import edge_tts
 from moviepy import (
     ImageClip, AudioFileClip, TextClip, CompositeVideoClip,
-    concatenate_videoclips, ColorClip
+    concatenate_videoclips, ColorClip, vfx
 )
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
@@ -93,7 +93,6 @@ Her zaman yeni almak kârlı değil.
 }
 
 def pick_topic():
-    """Aynı konuyu peş peşe tekrar etmesin"""
     used_file = "used_topics.txt"
     used = []
     if os.path.exists(used_file):
@@ -107,7 +106,6 @@ def pick_topic():
 
     topic = random.choice(available)
     used.append(topic)
-    # Son 20'yi tut
     with open(used_file, "w", encoding="utf-8") as f:
         f.write("\n".join(used[-20:]))
     return topic
@@ -146,7 +144,8 @@ Konuya özel konuş. Sadece konuşma metni. Türkçe.
 
 async def text_to_speech(text, output_file):
     clean = text.replace(". ", ", ").replace("! ", ", ").replace("? ", ", ")
-    communicate = edge_tts.Communicate(clean, VOICE, rate="+12%", pitch="-3Hz")
+    # Daha doğal ton
+    communicate = edge_tts.Communicate(clean, VOICE, rate="+6%", pitch="-6Hz")
     word_timings = []
     with open(output_file, "wb") as f:
         async for chunk in communicate.stream():
@@ -299,7 +298,6 @@ def create_hook(topic, duration=5.5):
         y += heights[i] + 10
 
     arr = np.array(img)
-    # Biraz daha aşağı
     return ImageClip(arr).with_duration(duration).with_position((40, 280))
 
 def create_subtitles(script, total_duration, word_timings):
@@ -322,7 +320,6 @@ def create_subtitles(script, total_duration, word_timings):
                 dur = max(end - start, 1.0)
                 idx += n
 
-            # Son cümle videonun sonuna kadar kalsın
             if i == len(sentences) - 1:
                 dur = max(total_duration - start, 1.5)
 
@@ -365,6 +362,7 @@ def create_video(script, audio_file, images, topic, word_timings, output="video.
         print("Görsel yok")
         return
 
+    fade = 0.35  # yumuşak geçiş süresi
     n = max(12, min(len(images) * 2, int(duration / 1.8)))
     unique = list(dict.fromkeys(images))
     images = unique.copy()
@@ -373,9 +371,16 @@ def create_video(script, audio_file, images, topic, word_timings, output="video.
     random.shuffle(images)
     images = images[:n]
 
-    clip_dur = duration / n
-    img_clips = [make_clip(images[i], clip_dur, i % 3) for i in range(n)]
-    video = concatenate_videoclips(img_clips, method="compose")
+    clip_dur = duration / n + fade  # fade için biraz ekstra
+    img_clips = []
+    for i in range(n):
+        c = make_clip(images[i], clip_dur, i % 3)
+        # Yumuşak giriş / çıkış
+        c = c.with_effects([vfx.CrossFadeIn(fade), vfx.CrossFadeOut(fade)])
+        img_clips.append(c)
+
+    # overlap ile birleştir
+    video = concatenate_videoclips(img_clips, method="compose", padding=-fade)
     video = video.with_duration(duration).resized((W, H))
     video = video.with_audio(audio)
 
