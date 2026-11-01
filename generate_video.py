@@ -149,32 +149,35 @@ async def text_to_speech(text, output_file):
     print(f"Ses OK | {len(word_timings)} kelime")
     return word_timings
 
-def download_images(topic, count=12):
+def download_images(topic, count=14):
     images = []
     t = topic.lower()
 
     if "elektrikli" in t or "batarya" in t:
-        queries = ["electric car", "EV car", "electric vehicle", "car battery"]
+        queries = ["electric car", "tesla car", "electric vehicle charging"]
     elif "dizel" in t:
-        queries = ["diesel car", "car engine", "car exhaust", "sedan car", "car exterior"]
-    elif "otomatik vites" in t:
-        queries = ["automatic transmission", "car gear stick", "car interior"]
+        queries = ["diesel car", "car engine bay", "sedan car"]
+    elif "otomatik" in t:
+        queries = ["car gear shift", "automatic gear stick", "car interior dashboard"]
     elif "turbo" in t:
-        queries = ["turbo engine", "car turbo", "car engine bay"]
+        queries = ["car engine bay", "turbocharger", "car motor"]
     elif "bmw" in t:
-        queries = ["BMW car", "BMW sedan", "BMW engine", "BMW rear"]
+        queries = ["BMW car", "BMW sedan", "BMW interior"]
     elif "oktan" in t or "benzin" in t:
-        queries = ["gas station", "car fuel", "petrol pump", "car engine"]
+        queries = ["gas station pump", "car fuel tank", "petrol station"]
     else:
-        queries = ["car exterior", "sedan car", "car engine", "car dashboard"]
+        queries = ["car exterior", "sedan car", "car dashboard"]
+
+    exclude = ["people", "person", "man", "woman", "portrait", "building", "architecture",
+               "abstract", "pole", "electricity", "power line", "tower", "street light"]
 
     for q in queries:
         if len(images) >= count:
             break
         url = (
             f"https://pixabay.com/api/?key={PIXABAY_KEY}"
-            f"&q={q.replace(' ', '+')}&image_type=photo&orientation=vertical"
-            f"&per_page=10&safesearch=true"
+            f"&q={q.replace(' ', '+')}&image_type=photo"
+            f"&per_page=15&safesearch=true"
         )
         try:
             r = requests.get(url, timeout=12)
@@ -183,7 +186,7 @@ def download_images(topic, count=12):
                 if len(images) >= count:
                     break
                 tags = (hit.get("tags") or "").lower()
-                if any(x in tags for x in ["people", "person", "man", "woman", "portrait", "building", "architecture", "abstract"]):
+                if any(x in tags for x in exclude):
                     continue
                 if ("elektrikli" in t or "batarya" in t) and "bmw" in tags:
                     continue
@@ -199,12 +202,11 @@ def download_images(topic, count=12):
         except Exception as e:
             print(f"Görsel hatası ({q}): {e}")
 
-    if len(images) < 4:
+    if len(images) < 5:
         print("Yedek arama...")
         url = (
             f"https://pixabay.com/api/?key={PIXABAY_KEY}"
-            f"&q=car&image_type=photo&orientation=vertical"
-            f"&per_page={count}&safesearch=true"
+            f"&q=car&image_type=photo&per_page={count}&safesearch=true"
         )
         try:
             r = requests.get(url, timeout=12)
@@ -244,7 +246,7 @@ def create_hook(topic, duration=5.5):
     t = topic.lower()
     if "bmw" in t and "200" in t:
         lines = ["BMW 200 BIN KM SONRA", "BOZULUR MU?"]
-    elif "otomatik vites" in t:
+    elif "otomatik" in t:
         lines = ["OTOMATIK VITES", "BOZULUR MU?"]
     elif "dizel" in t:
         lines = ["DIZEL MOTOR", "DAHA DAYANIKLI MI?"]
@@ -288,10 +290,10 @@ def create_hook(topic, duration=5.5):
     return clip.with_position((50, 200))
 
 def create_result_text(script, total_duration):
-    tail = script.lower()[-80:]
+    tail = script.lower()[-100:]
     if "yalan" in tail:
         word, color = "YALAN", (220, 30, 30)
-    elif "bu gerçek" in tail or tail.strip().endswith("gerçek.") or tail.strip().endswith("gerçek"):
+    elif "gerçek" in tail:
         word, color = "GERÇEK", (0, 200, 0)
     else:
         return None
@@ -310,39 +312,45 @@ def create_result_text(script, total_duration):
     img = img.rotate(12, expand=True, fillcolor=(0, 0, 0, 0))
 
     arr = np.array(img)
-    clip = ImageClip(arr).with_duration(2.0)
-    start = max(total_duration - 2.0, 0)
+    clip = ImageClip(arr).with_duration(2.2)
+    start = max(total_duration - 2.2, 0)
     return clip.with_start(start).with_position(("center", 560))
 
 def create_subtitles(script, total_duration, word_timings):
+    # Son cümleyi de göster (sadece tek başına "Yalan." olanı atla)
     sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script) if len(s.strip()) > 3]
     if not sentences:
         sentences = [script]
 
     filtered = []
     for s in sentences:
-        low = s.lower()
-        if "bu iddia tamamen yalan" in low or "bu bir yalan" in low or "bu gerçek" in low:
-            continue
-        if low.strip() in ["yalan.", "yalan", "gerçek.", "gerçek"]:
+        low = s.lower().strip()
+        if low in ["yalan.", "yalan", "gerçek.", "gerçek"]:
             continue
         filtered.append(s)
     sentences = filtered if filtered else sentences
 
     clips = []
 
-    if word_timings and len(word_timings) > 5:
+    if word_timings and len(word_timings) > 3:
         idx = 0
-        for s in sentences:
+        for i, s in enumerate(sentences):
             s_words = s.split()
             n = max(len(s_words), 1)
             if idx >= len(word_timings):
-                break
-            start = word_timings[idx]["start"]
-            end_idx = min(idx + n - 1, len(word_timings) - 1)
-            end = word_timings[end_idx]["start"] + word_timings[end_idx]["duration"]
-            dur = max(end - start, 1.2)
-            idx += n
+                # Kalan süreye yay
+                start = word_timings[-1]["start"] if word_timings else 0
+                dur = max(total_duration - start, 1.5)
+            else:
+                start = word_timings[idx]["start"]
+                end_idx = min(idx + n - 1, len(word_timings) - 1)
+                end = word_timings[end_idx]["start"] + word_timings[end_idx]["duration"]
+                dur = max(end - start, 1.2)
+                idx += n
+
+            # Son cümle damgayla çakışmasın diye biraz kısalt
+            if i == len(sentences) - 1 and "yalan" in s.lower():
+                dur = max(dur - 0.5, 1.0)
 
             words = s.split()
             if len(words) <= 5:
@@ -370,7 +378,7 @@ def create_subtitles(script, total_duration, word_timings):
     current = 0.0
     for s in sentences:
         share = len(s) / total_chars
-        dur = max(share * total_duration * 0.90, 1.3)
+        dur = max(share * total_duration * 0.92, 1.3)
         words = s.split()
         if len(words) <= 5:
             display = s
@@ -398,20 +406,26 @@ def create_video(script, audio_file, images, topic, word_timings, output="video.
     duration = audio.duration
     print(f"Ses: {duration:.1f}s")
 
-    while len(images) < 10:
+    while len(images) < 12:
         images.append(random.choice(images))
-    images = images[:12]
+    images = images[:16]
 
-    clip_dur = duration / len(images)
+    # Her görsel en fazla 2.8 sn
+    clip_dur = min(duration / len(images), 2.8)
     img_clips = [make_clip(img, clip_dur, i % 3) for i, img in enumerate(images)]
 
     video = concatenate_videoclips(img_clips, method="compose").resized((W, H))
+    # Ses süresiyle eşitle
+    if video.duration < duration:
+        last = img_clips[-1].with_duration(duration - video.duration + clip_dur)
+        video = concatenate_videoclips(img_clips[:-1] + [last], method="compose").resized((W, H))
     video = video.with_audio(audio).with_duration(duration)
 
     layers = [video, create_hook(topic, 5.5)] + create_subtitles(script, duration, word_timings)
     result = create_result_text(script, duration)
     if result is not None:
         layers.append(result)
+        print("YALAN/GERÇEK damgası eklendi")
 
     final = CompositeVideoClip(layers, size=(W, H)).with_duration(duration).resized((W, H))
     final.write_videofile(output, fps=24, codec="libx264", audio_codec="aac", logger=None)
@@ -429,7 +443,7 @@ def main():
     word_timings = asyncio.run(text_to_speech(script, "ses.mp3"))
 
     print("3. Görsel...")
-    images = download_images(topic, 12)
+    images = download_images(topic, 14)
     if len(images) < 3:
         print("Görsel yetersiz")
         return
