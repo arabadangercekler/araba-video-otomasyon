@@ -164,9 +164,10 @@ def download_images(topic, count=16):
         queries = ["sedan car exterior", "car side view", "automobile"]
 
     exclude = [
-        "people", "person", "man", "woman", "portrait", "building", "architecture",
-        "abstract", "pole", "electricity", "tower", "street light", "road sign",
-        "lamborghini", "ferrari", "supercar", "motorcycle", "bike"
+        "people", "person", "man", "woman", "portrait", "child", "kid", "baby",
+        "building", "architecture", "abstract", "pole", "electricity", "tower",
+        "street light", "road sign", "lamborghini", "ferrari", "supercar",
+        "motorcycle", "bike", "airplane", "aircraft", "plane", "jet", "airport"
     ]
 
     for q in queries:
@@ -215,18 +216,19 @@ def download_images(topic, count=16):
 def make_clip(img_path, duration, move_type=0):
     bg = ColorClip(size=(W, H), color=(0, 0, 0)).with_duration(duration)
     clip = ImageClip(img_path)
+    # Daha geniş kadraj (aşırı yakın olmasın)
     if clip.w / clip.h > W / H:
-        clip = clip.resized(height=int(H * 1.25))
+        clip = clip.resized(height=int(H * 1.12))
     else:
-        clip = clip.resized(width=int(W * 1.25))
+        clip = clip.resized(width=int(W * 1.12))
     clip = clip.with_duration(duration)
 
     if move_type == 0:
-        def scale(t): return 1.0 + 0.08 * (t / max(duration, 0.1))
+        def scale(t): return 1.0 + 0.05 * (t / max(duration, 0.1))
     elif move_type == 1:
-        def scale(t): return 1.08 - 0.08 * (t / max(duration, 0.1))
+        def scale(t): return 1.05 - 0.05 * (t / max(duration, 0.1))
     else:
-        def scale(t): return 1.04 + 0.04 * (t / max(duration, 0.1))
+        def scale(t): return 1.02 + 0.03 * (t / max(duration, 0.1))
 
     clip = clip.resized(scale)
     clip = clip.cropped(width=W, height=H, x_center=clip.w / 2, y_center=clip.h / 2)
@@ -278,33 +280,6 @@ def create_hook(topic, duration=5.5):
 
     arr = np.array(img)
     return ImageClip(arr).with_duration(duration).with_position((50, 200))
-
-def create_result_text(script, topic, total_duration):
-    tail = script.lower()[-120:]
-    topic_l = topic.lower()
-    if "yalan" in tail or "yalanı" in topic_l:
-        word, color = "YALAN", (220, 30, 30)
-    elif "gerçek" in tail:
-        word, color = "GERÇEK", (0, 200, 0)
-    else:
-        return None
-
-    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 100)
-    dummy = Image.new("RGBA", (10, 10))
-    d = ImageDraw.Draw(dummy)
-    bbox = d.textbbox((0, 0), word, font=font)
-    tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
-
-    img = Image.new("RGBA", (tw + 80, th + 80), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(img)
-    for dx, dy in [(-5,-5),(-5,5),(5,-5),(5,5),(-5,0),(5,0),(0,-5),(0,5)]:
-        draw.text((40+dx, 40+dy), word, font=font, fill=(0, 0, 0, 255))
-    draw.text((40, 40), word, font=font, fill=color + (255,))
-    img = img.rotate(12, expand=True, fillcolor=(0, 0, 0, 0))
-
-    arr = np.array(img)
-    start = max(total_duration - 2.3, 0)
-    return ImageClip(arr).with_start(start).with_duration(2.3).with_position(("center", 560))
 
 def create_subtitles(script, total_duration, word_timings):
     sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script) if len(s.strip()) > 2]
@@ -363,10 +338,15 @@ def create_video(script, audio_file, images, topic, word_timings, output="video.
         print("Görsel yok")
         return
 
-    # Hızlı akış: her kare \~1.8 sn
+    # Hızlı akış \~1.8 sn / kare
     n = max(12, min(len(images) * 2, int(duration / 1.8)))
+
+    # Tekrar az olsun
+    unique = list(dict.fromkeys(images))
+    images = unique.copy()
     while len(images) < n:
-        images.append(random.choice(images))
+        images.append(random.choice(unique))
+    random.shuffle(images)
     images = images[:n]
 
     clip_dur = duration / n
@@ -375,11 +355,8 @@ def create_video(script, audio_file, images, topic, word_timings, output="video.
     video = video.with_duration(duration).resized((W, H))
     video = video.with_audio(audio)
 
+    # YALAN damgası yok
     layers = [video, create_hook(topic, 5.5)] + create_subtitles(script, duration, word_timings)
-    result = create_result_text(script, topic, duration)
-    if result is not None:
-        layers.append(result)
-        print("Damga eklendi")
 
     final = CompositeVideoClip(layers, size=(W, H)).with_duration(duration)
     final.write_videofile(output, fps=24, codec="libx264", audio_codec="aac", logger=None)
