@@ -57,7 +57,7 @@ Dayanıklılık aracın kullanımına bağlı.
 """,
     "elektrikli": """
 Elektrikli arabaların bataryası 5 yılda biter mi?
-Üreticiler genelde 8 yıl veya 160 bin km garanti veriyor.
+Üreticiler genelde 8 yıl veya 160 bin kilometre garanti veriyor.
 Gerçek hayatta çoğu batarya 10-15 yıl dayanıyor.
 Sık hızlı şarj ömrü biraz kısaltabiliyor.
 5 yılda biter demek abartı. Bu iddia tamamen yalan.
@@ -79,7 +79,7 @@ Bu iddia tamamen yalan.
     "kisin": """
 Kışın arabayı ısıtmadan sürmek motoru bozar mı?
 Modern motorlar ısıtılmadan da sürülebilir.
-İlk 1-2 km yumuşak kullanmak yeterli.
+İlk 1-2 kilometre yumuşak kullanmak yeterli.
 Uzun süre rölantide ısıtmak hem yakıt yer hem çevreye zarar.
 Bu iddia abartılı.
 """,
@@ -98,12 +98,10 @@ def pick_topic():
     if os.path.exists(used_file):
         with open(used_file, "r", encoding="utf-8") as f:
             used = [x.strip() for x in f.readlines() if x.strip()]
-
     available = [t for t in TOPICS if t not in used]
     if not available:
         used = []
         available = TOPICS.copy()
-
     topic = random.choice(available)
     used.append(topic)
     with open(used_file, "w", encoding="utf-8") as f:
@@ -122,30 +120,39 @@ def pick_fallback(topic):
     if "yeni araba" in t: return FALLBACKS["yeni"].strip()
     return FALLBACKS["oktan"].strip()
 
+def clean_for_speech(text):
+    """TTS'in düzgün okuması için kısaltmaları aç"""
+    text = re.sub(r'\bkm\b', 'kilometre', text, flags=re.IGNORECASE)
+    text = re.sub(r'\bKM\b', 'kilometre', text)
+    text = re.sub(r'(\d+)\s*bin\s*km', r'\1 bin kilometre', text, flags=re.IGNORECASE)
+    text = text.replace("  ", " ")
+    return text
+
 def generate_script(topic):
     try:
         response = model.generate_content(f"""
 Sen profesyonel Türk YouTube Shorts senaristisin.
 Konu: {topic}
-50-60 saniyelik senaryo yaz.
+50-55 saniyelik senaryo yaz.
 İlk cümle dikkat çekici soru olsun.
-Çok basit konuş. Ortaokul öğrencisi anlasın.
+Çok basit ve akıcı konuş. Ortaokul öğrencisi anlasın.
 Teknik kelime kullanma.
+Cümleler kısa olsun, arada uzun boşluk bırakma.
+"km" yazma, "kilometre" yaz.
 Konuya özel konuş. Sadece konuşma metni. Türkçe.
 """)
         text = response.text.strip()
         if text and len(text) > 40:
             print("Gemini senaryosu alındı")
-            return text
+            return clean_for_speech(text)
     except Exception as e:
         print(f"Gemini hatası: {e}")
     print("Yedek senaryo (konuya uygun)")
-    return pick_fallback(topic)
+    return clean_for_speech(pick_fallback(topic))
 
 async def text_to_speech(text, output_file):
-    clean = text.replace(". ", ", ").replace("! ", ", ").replace("? ", ", ")
-    # Daha doğal ton
-    communicate = edge_tts.Communicate(clean, VOICE, rate="+6%", pitch="-6Hz")
+    # Önceki iyi ayarlar: biraz hızlı, hafif düşük ton
+    communicate = edge_tts.Communicate(text, VOICE, rate="+10%", pitch="-3Hz")
     word_timings = []
     with open(output_file, "wb") as f:
         async for chunk in communicate.stream():
@@ -187,7 +194,8 @@ def download_images(topic, count=16):
         "people", "person", "man", "woman", "portrait", "child", "kid", "baby",
         "building", "architecture", "abstract", "pole", "electricity", "tower",
         "street light", "road sign", "lamborghini", "ferrari", "supercar",
-        "motorcycle", "bike", "airplane", "aircraft", "plane", "jet", "airport"
+        "motorcycle", "bike", "airplane", "aircraft", "plane", "jet", "airport",
+        "cable", "gondola", "ski lift", "cake", "toy"
     ]
 
     for q in queries:
@@ -362,7 +370,7 @@ def create_video(script, audio_file, images, topic, word_timings, output="video.
         print("Görsel yok")
         return
 
-    fade = 0.35  # yumuşak geçiş süresi
+    fade = 0.30
     n = max(12, min(len(images) * 2, int(duration / 1.8)))
     unique = list(dict.fromkeys(images))
     images = unique.copy()
@@ -371,15 +379,13 @@ def create_video(script, audio_file, images, topic, word_timings, output="video.
     random.shuffle(images)
     images = images[:n]
 
-    clip_dur = duration / n + fade  # fade için biraz ekstra
+    clip_dur = duration / n + fade
     img_clips = []
     for i in range(n):
         c = make_clip(images[i], clip_dur, i % 3)
-        # Yumuşak giriş / çıkış
         c = c.with_effects([vfx.CrossFadeIn(fade), vfx.CrossFadeOut(fade)])
         img_clips.append(c)
 
-    # overlap ile birleştir
     video = concatenate_videoclips(img_clips, method="compose", padding=-fade)
     video = video.with_duration(duration).resized((W, H))
     video = video.with_audio(audio)
