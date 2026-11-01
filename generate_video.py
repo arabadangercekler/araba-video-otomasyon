@@ -140,30 +140,32 @@ async def text_to_speech(text, output_file):
     print(f"Ses OK | {len(word_timings)} kelime")
     return word_timings
 
-def download_images(topic, count=14):
+def download_images(topic, count=16):
     images = []
     t = topic.lower()
 
     if "elektrikli" in t or "batarya" in t:
-        queries = ["electric car", "tesla car", "ev charging"]
+        queries = ["electric car white", "tesla model", "ev car charging station"]
     elif "dizel" in t:
-        queries = ["diesel car", "car engine", "sedan car"]
+        queries = ["diesel engine car", "car engine close up", "sedan car side"]
     elif "otomatik" in t:
-        queries = ["car gear shift", "automatic gear", "car interior"]
+        queries = ["automatic gear shifter", "car gear lever", "car center console"]
     elif "turbo" in t:
-        queries = ["car engine", "engine bay", "car motor"]
+        queries = ["car turbo engine", "engine bay close", "car motor"]
     elif "bmw" in t:
-        queries = ["BMW car", "BMW sedan", "BMW"]
+        queries = ["BMW 3 series", "BMW sedan exterior", "BMW car front"]
     elif "oktan" in t or "benzin" in t:
-        queries = ["gas station", "fuel pump", "petrol"]
+        queries = ["fuel pump nozzle", "gas station car", "petrol pump close"]
     elif "yeni araba" in t:
-        queries = ["new car", "modern car", "car showroom"]
+        queries = ["new car dealership", "modern sedan car", "car showroom"]
+    elif "kışın" in t or "isıtmadan" in t:
+        queries = ["car winter snow", "car cold morning", "sedan car outdoor"]
     else:
-        queries = ["car", "sedan", "automobile"]
+        queries = ["sedan car exterior", "car side view", "automobile"]
 
     exclude = [
         "people", "person", "man", "woman", "portrait", "building", "architecture",
-        "abstract", "pole", "electricity", "tower", "street", "road sign",
+        "abstract", "pole", "electricity", "tower", "street light", "road sign",
         "lamborghini", "ferrari", "supercar", "motorcycle", "bike"
     ]
 
@@ -213,19 +215,17 @@ def download_images(topic, count=14):
 def make_clip(img_path, duration, move_type=0):
     bg = ColorClip(size=(W, H), color=(0, 0, 0)).with_duration(duration)
     clip = ImageClip(img_path)
-    # Cover fill
     if clip.w / clip.h > W / H:
         clip = clip.resized(height=int(H * 1.25))
     else:
         clip = clip.resized(width=int(W * 1.25))
     clip = clip.with_duration(duration)
 
-    # Hafif ve kontrollü hareket (kadrajdan çıkmasın)
-    if move_type == 0:      # yavaş yakınlaş
+    if move_type == 0:
         def scale(t): return 1.0 + 0.08 * (t / max(duration, 0.1))
-    elif move_type == 1:    # yavaş uzaklaş
+    elif move_type == 1:
         def scale(t): return 1.08 - 0.08 * (t / max(duration, 0.1))
-    else:                   # sabit hafif yakın
+    else:
         def scale(t): return 1.04 + 0.04 * (t / max(duration, 0.1))
 
     clip = clip.resized(scale)
@@ -338,7 +338,6 @@ def create_subtitles(script, total_duration, word_timings):
             clips.append(txt.with_start(start).with_duration(dur).with_position(("center", 980)))
         return clips
 
-    # yedek
     total_chars = sum(len(s) for s in sentences) or 1
     current = 0.0
     for s in sentences:
@@ -364,8 +363,8 @@ def create_video(script, audio_file, images, topic, word_timings, output="video.
         print("Görsel yok")
         return
 
-    # Görselleri ses süresine tam sığdır (siyah ekran olmasın)
-    n = max(8, min(len(images), int(duration / 2.2)))
+    # Hızlı akış: her kare \~1.8 sn
+    n = max(12, min(len(images) * 2, int(duration / 1.8)))
     while len(images) < n:
         images.append(random.choice(images))
     images = images[:n]
@@ -398,7 +397,7 @@ def main():
     word_timings = asyncio.run(text_to_speech(script, "ses.mp3"))
 
     print("3. Görsel...")
-    images = download_images(topic, 14)
+    images = download_images(topic, 16)
     if len(images) < 3:
         print("Görsel yetersiz")
         return
