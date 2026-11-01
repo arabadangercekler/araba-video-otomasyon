@@ -35,57 +35,63 @@ TOPICS = [
 
 FALLBACKS = {
     "bmw": """
-BMW 200 bin kilometre sonra bozulur mu? Birçok kişi serviste bunu duyuyor.
-Düzenli bakımlı BMW'ler 400 bin kilometreyi rahat görüyor.
+BMW 200 bin kilometre sonra bozulur mu sanıyorsun?
+Sana bir sır vereyim: Düzenli bakımlı BMW'ler 400 bin kilometreyi rahat görüyor.
 Asıl sorun geç yağ değişimi ve soğuk motora basılan gaz.
-Bakımsız araçlarda zincir sorunları çıkıyor.
+Bakımı yapılan araçta zincir sorunu bile geç çıkar.
 Bu iddia tamamen yalan.
 """,
+    "kisin": """
+Kışın arabayı dakikalarca boşta ısıtmazsan motorun bozulacağını mı sanıyorsun?
+Sana büyük bir sır vereyim: Bu kural tam otuz yıl önce bitti.
+Eski model arabalarda evet, beklemek gerekiyordu.
+Ama şimdiki arabalar öyle değil.
+Arabayı sabah çalıştırıp kapının önünde beklersen motora iyilik değil kötülük yapıyorsun.
+Motor durduğu yerde çok geç ısınır, boş yere benzin yakar.
+Doğrusu çok basit.
+Arabayı çalıştır, kemerini tak, aynaları kontrol et.
+Yirmi otuz saniye bekle ve hemen yola çık.
+Sadece araba ısınana kadar gaza sonuna kadar basma.
+Motor hareket ettikçe daha hızlı ve sağlıklı ısınır.
+""",
     "turbo": """
-Turbo motorlar daha çabuk bozulur mu? Birçok kişi bundan korkuyor.
-Yağ soğutması düzgün yapılırsa turbo uzun ömürlü oluyor.
-Motoru stop etmeden önce 1 dakika rölantide beklemek önemli.
+Turbo motorlar daha çabuk bozulur mu sanıyorsun?
+Sana bir sır vereyim: Yağ soğutması düzgün yapılırsa turbo uzun ömürlü oluyor.
+Motoru stop etmeden önce bir dakika rölantide beklemek önemli.
 Ucuz yağ ve ihmal asıl suçlu.
 Bu iddia tamamen yalan.
 """,
     "dizel": """
-Dizel motorlar benzinliye göre daha dayanıklı mı?
+Dizel motorlar benzinliye göre daha dayanıklı mı sanıyorsun?
 Eski dizeller gerçekten uzun yaşardı.
 Yeni dizellerde ekstra sistemler var, bakım ister.
 Bakım yapılmazsa masrafı benzinliden fazla çıkabiliyor.
 Dayanıklılık aracın kullanımına bağlı.
 """,
     "elektrikli": """
-Elektrikli arabaların bataryası 5 yılda biter mi?
-Üreticiler genelde 8 yıl veya 160 bin kilometre garanti veriyor.
+Elektrikli arabaların bataryası 5 yılda biter mi sanıyorsun?
+Sana bir sır vereyim: Üreticiler genelde 8 yıl veya 160 bin kilometre garanti veriyor.
 Gerçek hayatta çoğu batarya 10-15 yıl dayanıyor.
 Sık hızlı şarj ömrü biraz kısaltabiliyor.
 5 yılda biter demek abartı. Bu iddia tamamen yalan.
 """,
     "otomatik": """
-Otomatik vitesli arabalar daha çabuk bozulur mu?
+Otomatik vitesli arabalar daha çabuk bozulur mu sanıyorsun?
 Eski otomatikler bakım isterdi, yeniler daha dayanıklı.
 Yağ değişimi yapılmazsa sorun çıkar.
 Doğru kullanımda otomatik vites uzun yaşar.
 Bu iddia tamamen yalan.
 """,
     "oktan": """
-Yüksek oktanlı benzin motoru temizler mi?
-Oktan sayısı vuruntuyu önler, motoru temizlemez.
+Yüksek oktanlı benzin motoru temizler mi sanıyorsun?
+Sana bir sır vereyim: Oktan sayısı vuruntuyu önler, motoru temizlemez.
 Motorun istediği oktanın üstüne çıkmak güç artırmaz.
 Temizlik için özel katkı gerekir, pahalı benzin değil.
 Bu iddia tamamen yalan.
 """,
-    "kisin": """
-Kışın arabayı ısıtmadan sürmek motoru bozar mı?
-Modern motorlar ısıtılmadan da sürülebilir.
-İlk 1-2 kilometre yumuşak kullanmak yeterli.
-Uzun süre rölantide ısıtmak hem yakıt yer hem çevreye zarar.
-Bu iddia abartılı.
-""",
     "yeni": """
-Yeni araba almak eski arabadan daha kârlı mı?
-İlk 3 yılda yeni araba değer kaybı yüksektir.
+Yeni araba almak eski arabadan daha kârlı mı sanıyorsun?
+Sana bir sır vereyim: İlk 3 yılda yeni araba değer kaybı yüksektir.
 Bakımlı 2-3 yaşındaki araç çoğu zaman daha mantıklı.
 Sigorta ve vergi de yeni arabada daha pahalı olabilir.
 Her zaman yeni almak kârlı değil.
@@ -121,7 +127,6 @@ def pick_fallback(topic):
     return FALLBACKS["oktan"].strip()
 
 def clean_for_speech(text):
-    """TTS'in düzgün okuması için kısaltmaları aç"""
     text = re.sub(r'\bkm\b', 'kilometre', text, flags=re.IGNORECASE)
     text = re.sub(r'\bKM\b', 'kilometre', text)
     text = re.sub(r'(\d+)\s*bin\s*km', r'\1 bin kilometre', text, flags=re.IGNORECASE)
@@ -131,15 +136,17 @@ def clean_for_speech(text):
 def generate_script(topic):
     try:
         response = model.generate_content(f"""
-Sen profesyonel Türk YouTube Shorts senaristisin.
+Sen Türk YouTube Shorts için samimi bir araba kanalı sunucususun.
 Konu: {topic}
-50-55 saniyelik senaryo yaz.
-İlk cümle dikkat çekici soru olsun.
-Çok basit ve akıcı konuş. Ortaokul öğrencisi anlasın.
-Teknik kelime kullanma.
-Cümleler kısa olsun, arada uzun boşluk bırakma.
-"km" yazma, "kilometre" yaz.
-Konuya özel konuş. Sadece konuşma metni. Türkçe.
+
+Tarza uy:
+- İzleyiciye "sen" diye konuş.
+- İlk cümle güçlü bir soru veya "sana bir sır vereyim" tarzı olsun.
+- Kısa, net cümleler. Konuşur gibi yaz.
+- Teknik terim yok. Ortaokul seviyesi.
+- "km" yazma, "kilometre" yaz.
+- Sonunda abone / paylaş çağrısı yapma, sadece konuyu bitir.
+- 50-55 saniye. Sadece konuşma metni. Türkçe.
 """)
         text = response.text.strip()
         if text and len(text) > 40:
@@ -151,7 +158,6 @@ Konuya özel konuş. Sadece konuşma metni. Türkçe.
     return clean_for_speech(pick_fallback(topic))
 
 async def text_to_speech(text, output_file):
-    # Önceki iyi ayarlar: biraz hızlı, hafif düşük ton
     communicate = edge_tts.Communicate(text, VOICE, rate="+10%", pitch="-3Hz")
     word_timings = []
     with open(output_file, "wb") as f:
