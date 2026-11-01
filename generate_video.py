@@ -35,24 +35,24 @@ TOPICS = [
 FALLBACKS = {
     "bmw": """
 BMW 200 bin kilometre sonra bozulur mu? Birçok kişi serviste bunu duyuyor.
-N57 dizel motorlar düzenli bakımlıysa 400 bin kilometreyi rahat görüyor.
+Düzenli bakımlı BMW'ler 400 bin kilometreyi rahat görüyor.
 Asıl sorun geç yağ değişimi ve soğuk motora basılan gaz.
-Zincir germe sorunları bakımsız araçlarda çıkıyor.
+Bakımsız araçlarda zincir sorunları çıkıyor.
 Bu iddia tamamen yalan.
 """,
     "turbo": """
 Turbo motorlar daha çabuk bozulur mu? Birçok kişi bundan korkuyor.
-Turbo, yağ soğutması düzgün yapılırsa uzun ömürlü oluyor.
+Yağ soğutması düzgün yapılırsa turbo uzun ömürlü oluyor.
 Motoru stop etmeden önce 1 dakika rölantide beklemek önemli.
 Ucuz yağ ve ihmal asıl suçlu.
 Bu iddia tamamen yalan.
 """,
     "dizel": """
 Dizel motorlar benzinliye göre daha dayanıklı mı?
-Eski dizeller yüksek tork ve uzun ömürle biliniyordu.
-Yeni dizellerde partikül filtresi ve adblue ekstra bakım istiyor.
-Bakım aksarsa benzinliden daha pahalıya patlayabiliyor.
-Bu tamamen aracın kullanımına bağlı.
+Eski dizeller gerçekten uzun yaşardı.
+Yeni dizellerde ekstra sistemler var, bakım ister.
+Bakım yapılmazsa masrafı benzinliden fazla çıkabiliyor.
+Dayanıklılık aracın kullanımına bağlı.
 """,
     "elektrikli": """
 Elektrikli arabaların bataryası 5 yılda biter mi?
@@ -116,11 +116,11 @@ def generate_script(topic):
         response = model.generate_content(f"""
 Sen profesyonel Türk YouTube Shorts senaristisin.
 Konu: {topic}
-55-65 saniyelik senaryo yaz. En az 6-7 cümle olsun.
+50-60 saniyelik senaryo yaz.
 İlk cümle dikkat çekici soru olsun.
-Somut bilgi ver (motor tipi, km, sistem adı gibi).
-ASLA şunu deme: "iyi bakarsan uzun sürer", "kaliteli yağ koy", "düzenli bakım yap".
-Herkesin bildiği genel laflar yasak.
+Çok basit konuş. Ortaokul öğrencisi anlasın.
+Teknik kelime kullanma.
+Herkesin bildiği "iyi bakarsan uzun sürer" deme.
 Konuya özel konuş. Sadece konuşma metni. Türkçe.
 """)
         text = response.text.strip()
@@ -149,14 +149,14 @@ async def text_to_speech(text, output_file):
     print(f"Ses OK | {len(word_timings)} kelime")
     return word_timings
 
-def download_images(topic, count=8):
+def download_images(topic, count=12):
     images = []
     t = topic.lower()
 
     if "elektrikli" in t or "batarya" in t:
         queries = ["electric car", "EV car", "electric vehicle", "car battery"]
     elif "dizel" in t:
-        queries = ["diesel engine", "diesel car", "car engine"]
+        queries = ["diesel car", "car engine", "car exhaust", "sedan car", "car exterior"]
     elif "otomatik vites" in t:
         queries = ["automatic transmission", "car gear stick", "car interior"]
     elif "turbo" in t:
@@ -174,7 +174,7 @@ def download_images(topic, count=8):
         url = (
             f"https://pixabay.com/api/?key={PIXABAY_KEY}"
             f"&q={q.replace(' ', '+')}&image_type=photo&orientation=vertical"
-            f"&per_page=8&safesearch=true"
+            f"&per_page=10&safesearch=true"
         )
         try:
             r = requests.get(url, timeout=12)
@@ -199,7 +199,7 @@ def download_images(topic, count=8):
         except Exception as e:
             print(f"Görsel hatası ({q}): {e}")
 
-    if len(images) < 3:
+    if len(images) < 4:
         print("Yedek arama...")
         url = (
             f"https://pixabay.com/api/?key={PIXABAY_KEY}"
@@ -398,9 +398,9 @@ def create_video(script, audio_file, images, topic, word_timings, output="video.
     duration = audio.duration
     print(f"Ses: {duration:.1f}s")
 
-    while len(images) < 6:
+    while len(images) < 10:
         images.append(random.choice(images))
-    images = images[:8]
+    images = images[:12]
 
     clip_dur = duration / len(images)
     img_clips = [make_clip(img, clip_dur, i % 3) for i, img in enumerate(images)]
@@ -429,7 +429,7 @@ def main():
     word_timings = asyncio.run(text_to_speech(script, "ses.mp3"))
 
     print("3. Görsel...")
-    images = download_images(topic, 8)
+    images = download_images(topic, 12)
     if len(images) < 3:
         print("Görsel yetersiz")
         return
