@@ -3,6 +3,7 @@ import time
 import asyncio
 import random
 import re
+import datetime
 import requests
 import google.generativeai as genai
 import edge_tts
@@ -90,6 +91,26 @@ Sigorta ve vergi de yeni arabada daha pahalı olabilir.
 Her zaman yeni almak kârlı değil.
 """
 }
+
+def pick_topic():
+    """Aynı konuyu peş peşe tekrar etmesin"""
+    used_file = "used_topics.txt"
+    used = []
+    if os.path.exists(used_file):
+        with open(used_file, "r", encoding="utf-8") as f:
+            used = [x.strip() for x in f.readlines() if x.strip()]
+
+    available = [t for t in TOPICS if t not in used]
+    if not available:
+        used = []
+        available = TOPICS.copy()
+
+    topic = random.choice(available)
+    used.append(topic)
+    # Son 20'yi tut
+    with open(used_file, "w", encoding="utf-8") as f:
+        f.write("\n".join(used[-20:]))
+    return topic
 
 def pick_fallback(topic):
     t = topic.lower()
@@ -216,7 +237,6 @@ def download_images(topic, count=16):
 def make_clip(img_path, duration, move_type=0):
     bg = ColorClip(size=(W, H), color=(0, 0, 0)).with_duration(duration)
     clip = ImageClip(img_path)
-    # Daha geniş kadraj (aşırı yakın olmasın)
     if clip.w / clip.h > W / H:
         clip = clip.resized(height=int(H * 1.12))
     else:
@@ -257,7 +277,7 @@ def create_hook(topic, duration=5.5):
         words = topic.split()
         lines = [" ".join(words[:3]).upper(), " ".join(words[3:6]).upper() + "?"]
 
-    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 40)
+    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 46)
     dummy = Image.new("RGBA", (10, 10))
     d = ImageDraw.Draw(dummy)
     widths, heights = [], []
@@ -279,7 +299,8 @@ def create_hook(topic, duration=5.5):
         y += heights[i] + 10
 
     arr = np.array(img)
-    return ImageClip(arr).with_duration(duration).with_position((50, 200))
+    # Biraz daha aşağı
+    return ImageClip(arr).with_duration(duration).with_position((40, 280))
 
 def create_subtitles(script, total_duration, word_timings):
     sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script) if len(s.strip()) > 2]
@@ -293,13 +314,17 @@ def create_subtitles(script, total_duration, word_timings):
             n = max(len(s.split()), 1)
             if idx >= len(word_timings):
                 start = clips[-1].start + clips[-1].duration if clips else 0
-                dur = max(total_duration - start - 0.3, 1.2)
+                dur = max(total_duration - start, 1.5)
             else:
                 start = word_timings[idx]["start"]
                 end_idx = min(idx + n - 1, len(word_timings) - 1)
                 end = word_timings[end_idx]["start"] + word_timings[end_idx]["duration"]
                 dur = max(end - start, 1.0)
                 idx += n
+
+            # Son cümle videonun sonuna kadar kalsın
+            if i == len(sentences) - 1:
+                dur = max(total_duration - start, 1.5)
 
             words = s.split()
             display = s if len(words) <= 6 else " ".join(words[:len(words)//2]) + "\n" + " ".join(words[len(words)//2:])
@@ -315,8 +340,10 @@ def create_subtitles(script, total_duration, word_timings):
 
     total_chars = sum(len(s) for s in sentences) or 1
     current = 0.0
-    for s in sentences:
+    for i, s in enumerate(sentences):
         dur = max((len(s) / total_chars) * total_duration * 0.95, 1.2)
+        if i == len(sentences) - 1:
+            dur = max(total_duration - current, 1.5)
         words = s.split()
         display = s if len(words) <= 6 else " ".join(words[:len(words)//2]) + "\n" + " ".join(words[len(words)//2:])
         txt = TextClip(
@@ -338,10 +365,7 @@ def create_video(script, audio_file, images, topic, word_timings, output="video.
         print("Görsel yok")
         return
 
-    # Hızlı akış \~1.8 sn / kare
     n = max(12, min(len(images) * 2, int(duration / 1.8)))
-
-    # Tekrar az olsun
     unique = list(dict.fromkeys(images))
     images = unique.copy()
     while len(images) < n:
@@ -355,7 +379,6 @@ def create_video(script, audio_file, images, topic, word_timings, output="video.
     video = video.with_duration(duration).resized((W, H))
     video = video.with_audio(audio)
 
-    # YALAN damgası yok
     layers = [video, create_hook(topic, 5.5)] + create_subtitles(script, duration, word_timings)
 
     final = CompositeVideoClip(layers, size=(W, H)).with_duration(duration)
@@ -364,7 +387,7 @@ def create_video(script, audio_file, images, topic, word_timings, output="video.
     return output
 
 def main():
-    topic = random.choice(TOPICS)
+    topic = pick_topic()
     print(f"Konu: {topic}")
 
     print("1. Senaryo...")
