@@ -135,8 +135,8 @@ def clean_for_speech(text):
     return text
 
 def generate_script(topic):
-    # Daha yüksek yedek ihtimali → genel bilgi riski azalır
-    use_fallback_chance = 0.85
+    # %95 yedek → genel bilgi riski çok düşük
+    use_fallback_chance = 0.95
 
     if random.random() < use_fallback_chance:
         print("Samimi yedek senaryo kullanılıyor")
@@ -147,37 +147,31 @@ def generate_script(topic):
 Sen Türk YouTube Shorts için samimi bir araba kanalı sunucususun.
 Konu: {topic}
 
-ÖRNEK TARZ (buna çok benzeyeceksin):
+ÖRNEK TARZ:
 "Kışın arabayı dakikalarca boşta ısıtmazsan motorun bozulacağını mı sanıyorsun?
 Sana büyük bir sır vereyim: Bu kural tam otuz yıl önce bitti.
-Eski model arabalarda evet, beklemek gerekiyordu.
-Ama şimdiki arabalar öyle değil.
-...
-Bu videoyu hemen babana gönder de o da gerçeği öğrensin."
+..."
 
 KURALLAR:
 1. İlk cümle "sanıyorsun?" ile bitsin.
 2. İkinci cümle "Sana büyük bir sır vereyim:" ile başlasın.
-3. Özet gibi konuşma. Karşındaki adama anlatır gibi, samimi ve net ol.
-4. Genel laf YASAK: kaliteli yağ, düzenli bakım, iyi bakarsan, uzun ömürlü olur, bakım yaparsan gibi herkesin bildiği şeyler.
-5. Somut, şaşırtıcı bilgi ver.
-6. "kilometre" yaz.
-7. Son cümle gönder çağrısı olsun.
-8. En az 45 saniye sürecek uzunlukta yaz. Sadece konuşma metni. Türkçe.
+3. Genel laf YASAK (kaliteli yağ, düzenli bakım, iyi bakarsan, uzun ömürlü).
+4. Somut, şaşırtıcı bilgi ver.
+5. "kilometre" yaz.
+6. Son cümle gönder çağrısı olsun.
+7. En az 45 saniye. Sadece konuşma metni.
 """)
         text = response.text.strip()
         if text and len(text) > 200:
             bad = [
                 "kaliteli yağ", "düzenli bakım", "iyi bakarsan", "uzun ömürlü",
-                "bakım yaparsan", "özetle", "kısaca", "genel olarak"
+                "bakım yaparsan", "özetle", "kısaca", "genel olarak", "herkes bilir"
             ]
             if any(b in text.lower() for b in bad):
-                print("Genel bilgi tespit edildi → yedek")
+                print("Genel bilgi → yedek")
                 return clean_for_speech(pick_fallback(topic))
-            print("Gemini senaryosu kabul edildi")
+            print("Gemini kabul edildi")
             return clean_for_speech(text)
-        else:
-            print("Metin kısa → yedek")
     except Exception as e:
         print(f"Gemini hatası: {e}")
 
@@ -185,7 +179,6 @@ KURALLAR:
     return clean_for_speech(pick_fallback(topic))
 
 async def text_to_speech(text, output_file):
-    # Daha hızlı ve akıcı
     clean = text.replace(". ", ", ")
     communicate = edge_tts.Communicate(clean, VOICE, rate="+12%", pitch="-5Hz")
     word_timings = []
@@ -208,53 +201,62 @@ def download_images(topic, count=16):
     prefer_tag = None
 
     if "elektrikli" in t or "batarya" in t:
-        queries = ["electric car exterior", "electric sedan car", "ev car side"]
+        queries = ["electric car exterior", "electric sedan", "ev car"]
     elif "dizel" in t:
-        queries = ["diesel car exterior", "car engine bay", "sedan car side"]
+        queries = ["diesel car", "car engine bay", "sedan car"]
     elif "otomatik" in t:
-        queries = ["automatic gear shifter", "car gear lever", "car interior console"]
+        queries = ["automatic gear shifter car", "car gear lever", "car interior"]
     elif "turbo" in t:
-        queries = ["car turbo engine", "car engine close up", "engine bay car"]
+        queries = ["car turbo engine", "car engine closeup", "engine bay"]
     elif "bmw" in t:
-        queries = ["BMW sedan", "BMW 3 series", "BMW 5 series", "BMW car"]
+        queries = ["BMW sedan", "BMW 3 series", "BMW 5 series", "BMW car exterior"]
         prefer_tag = "bmw"
     elif "oktan" in t or "benzin" in t:
-        queries = ["car at gas station", "fuel pump car", "petrol nozzle car"]
+        queries = ["car gas station", "fuel pump car", "petrol station car"]
     elif "yeni araba" in t:
-        queries = ["new sedan car", "modern car exterior", "car dealership"]
+        queries = ["new sedan car", "modern car exterior", "new car"]
     elif "kışın" in t or "isıtmadan" in t:
-        queries = ["car in snow", "snow covered car", "car winter road", "sedan snow"]
+        queries = ["car in snow", "snow covered car", "car winter", "sedan snow"]
     else:
-        queries = ["sedan car exterior", "modern car side", "automobile exterior"]
+        queries = ["sedan car exterior", "modern car", "car side view"]
 
+    # Çok daha agresif engelleme listesi
     exclude = [
         "people", "person", "man", "woman", "portrait", "child", "kid", "baby",
         "face", "human", "crowd", "group", "boy", "girl", "worker", "driver",
-        "building", "architecture", "house", "skyscraper", "cityscape",
+        "building", "architecture", "house", "skyscraper", "cityscape", "street",
         "cake", "toy", "miniature", "fondant", "dessert",
         "train", "railway", "locomotive", "metro", "subway", "tram",
         "airplane", "aircraft", "plane", "motorcycle", "bike",
         "gondola", "cable car", "ski lift", "cableway",
-        "lamborghini", "ferrari", "porsche", "supercar"
+        "lamborghini", "ferrari", "porsche", "supercar",
+        "lamp", "light", "bulb", "lighting", "chandelier", "lantern",
+        "furniture", "room", "indoor", "interior design", "sofa", "chair",
+        "table", "desk", "office", "kitchen", "bedroom", "living room",
+        "tree", "forest only", "nature only", "landscape without car"
     ]
 
     preferred = []
     others = []
 
     for q in queries:
-        if len(preferred) + len(others) >= count * 2:
+        if len(preferred) + len(others) >= count * 3:
             break
         url = (
             f"https://pixabay.com/api/?key={PIXABAY_KEY}"
             f"&q={q.replace(' ', '+')}&image_type=photo"
-            f"&per_page=25&safesearch=true"
+            f"&per_page=30&safesearch=true"
         )
         try:
             r = requests.get(url, timeout=12)
             hits = r.json().get("hits", [])
             for hit in hits:
                 tags = (hit.get("tags") or "").lower()
+                # Engelleme
                 if any(x in tags for x in exclude):
+                    continue
+                # En azından araba ile ilgili bir şey olsun
+                if not any(x in tags for x in ["car", "auto", "vehicle", "sedan", "bmw", "engine", "motor", "wheel"]):
                     continue
                 img_url = hit.get("largeImageURL") or hit.get("webformatURL")
                 if not img_url:
@@ -280,6 +282,7 @@ def download_images(topic, count=16):
         except:
             continue
 
+    # Yeterli görsel yoksa son çare
     if len(images) < 5:
         fallback_q = "BMW+car" if prefer_tag == "bmw" else ("car+snow" if "kışın" in t or "isıtmadan" in t else "sedan+car")
         url = f"https://pixabay.com/api/?key={PIXABAY_KEY}&q={fallback_q}&image_type=photo&per_page={count}&safesearch=true"
@@ -288,6 +291,8 @@ def download_images(topic, count=16):
             for i, hit in enumerate(r.json().get("hits", [])[:count]):
                 tags = (hit.get("tags") or "").lower()
                 if any(x in tags for x in exclude):
+                    continue
+                if not any(x in tags for x in ["car", "auto", "vehicle", "sedan", "bmw"]):
                     continue
                 img_url = hit.get("largeImageURL") or hit.get("webformatURL")
                 if not img_url: continue
