@@ -33,6 +33,7 @@ TOPICS = [
     "Turbo motorlar bakımsızlığa daha dayanıksız gerçek mi",
 ]
 
+# Senin beğendiğin tarza kilitli yedekler
 FALLBACKS = {
     "bmw": """
 BMW 200 bin kilometre sonra bozulur mu sanıyorsun?
@@ -53,6 +54,7 @@ Arabayı çalıştır, kemerini tak, aynaları kontrol et.
 Yirmi otuz saniye bekle ve hemen yola çık.
 Sadece araba ısınana kadar gaza sonuna kadar basma, sakin sür.
 Motor hareket ettikçe daha hızlı ve sağlıklı ısınır.
+O soğukta boş yere titreme devri bitti.
 Bu videoyu hemen babana gönder de o da gerçeği öğrensin.
 """,
     "turbo": """
@@ -134,32 +136,34 @@ def clean_for_speech(text):
     return text
 
 def generate_script(topic):
+    # Kısa veya sapmış metin istemiyoruz — yedek öncelikli kontrol
     try:
         response = model.generate_content(f"""
 Sen Türk YouTube Shorts için samimi bir araba kanalı sunucususun.
 Konu: {topic}
 
-ZORUNLU TARZ:
+ZORUNLU:
 1. İlk cümle "sanıyorsun?" ile bitsin.
 2. İkinci cümle "Sana büyük bir sır vereyim:" ile başlasın.
-3. Herkesin bildiği genel laf YASAK (kaliteli yağ, düzenli bakım, iyi bakarsan uzun ömürlü olur).
-4. Somut, az bilinen bilgi ver.
-5. "Bu iddia tamamen yalan" demek zorunlu değil.
-6. Kısa cümleler, konuşur gibi. "kilometre" yaz.
-7. Son cümle konuya uygun gönder çağrısı.
-8. 50-55 saniye. Sadece konuşma metni. Türkçe.
+3. Genel laf YASAK (kaliteli yağ, düzenli bakım, iyi bakarsan uzun ömürlü).
+4. Somut bilgi ver. Kısa cümleler.
+5. "kilometre" yaz.
+6. Son cümle gönder çağrısı olsun.
+7. En az 45 saniye sürecek uzunlukta yaz. Türkçe. Sadece konuşma metni.
 """)
         text = response.text.strip()
-        if text and len(text) > 40:
+        if text and len(text) > 180:  # çok kısa gelmesin
             bad = ["kaliteli yağ", "düzenli bakım yap", "iyi bakarsan", "uzun ömürlü olur"]
             if any(b in text.lower() for b in bad):
-                print("Genel bilgi tespit, yedek kullanılıyor")
+                print("Genel bilgi → yedek")
                 return clean_for_speech(pick_fallback(topic))
-            print("Gemini senaryosu alındı")
+            print("Gemini senaryosu OK")
             return clean_for_speech(text)
+        else:
+            print("Metin kısa → yedek")
     except Exception as e:
         print(f"Gemini hatası: {e}")
-    print("Yedek senaryo")
+    print("Yedek senaryo kullanılıyor")
     return clean_for_speech(pick_fallback(topic))
 
 async def text_to_speech(text, output_file):
