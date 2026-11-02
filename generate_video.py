@@ -135,7 +135,6 @@ def clean_for_speech(text):
     return text
 
 def generate_script(topic):
-    # %95 yedek → genel bilgi riski çok düşük
     use_fallback_chance = 0.95
 
     if random.random() < use_fallback_chance:
@@ -180,7 +179,14 @@ KURALLAR:
 
 async def text_to_speech(text, output_file):
     clean = text.replace(". ", ", ")
-    communicate = edge_tts.Communicate(clean, VOICE, rate="+12%", pitch="-5Hz")
+    # Ses daha yüksek + biraz daha canlı
+    communicate = edge_tts.Communicate(
+        clean, 
+        VOICE, 
+        rate="+11%", 
+        pitch="-4Hz",
+        volume="+25%"
+    )
     word_timings = []
     with open(output_file, "wb") as f:
         async for chunk in communicate.stream():
@@ -220,7 +226,6 @@ def download_images(topic, count=16):
     else:
         queries = ["sedan car exterior", "modern car", "car side view"]
 
-    # Çok daha agresif engelleme listesi
     exclude = [
         "people", "person", "man", "woman", "portrait", "child", "kid", "baby",
         "face", "human", "crowd", "group", "boy", "girl", "worker", "driver",
@@ -232,8 +237,7 @@ def download_images(topic, count=16):
         "lamborghini", "ferrari", "porsche", "supercar",
         "lamp", "light", "bulb", "lighting", "chandelier", "lantern",
         "furniture", "room", "indoor", "interior design", "sofa", "chair",
-        "table", "desk", "office", "kitchen", "bedroom", "living room",
-        "tree", "forest only", "nature only", "landscape without car"
+        "table", "desk", "office", "kitchen", "bedroom", "living room"
     ]
 
     preferred = []
@@ -252,10 +256,8 @@ def download_images(topic, count=16):
             hits = r.json().get("hits", [])
             for hit in hits:
                 tags = (hit.get("tags") or "").lower()
-                # Engelleme
                 if any(x in tags for x in exclude):
                     continue
-                # En azından araba ile ilgili bir şey olsun
                 if not any(x in tags for x in ["car", "auto", "vehicle", "sedan", "bmw", "engine", "motor", "wheel"]):
                     continue
                 img_url = hit.get("largeImageURL") or hit.get("webformatURL")
@@ -282,7 +284,6 @@ def download_images(topic, count=16):
         except:
             continue
 
-    # Yeterli görsel yoksa son çare
     if len(images) < 5:
         fallback_q = "BMW+car" if prefer_tag == "bmw" else ("car+snow" if "kışın" in t or "isıtmadan" in t else "sedan+car")
         url = f"https://pixabay.com/api/?key={PIXABAY_KEY}&q={fallback_q}&image_type=photo&per_page={count}&safesearch=true"
@@ -425,6 +426,8 @@ def create_subtitles(script, total_duration, word_timings):
 
 def create_video(script, audio_file, images, topic, word_timings, output="video.mp4"):
     audio = AudioFileClip(audio_file)
+    # Ses seviyesini daha da yükselt
+    audio = audio.with_volume_scaled(1.6)
     duration = audio.duration
     print(f"Ses: {duration:.1f}s")
 
