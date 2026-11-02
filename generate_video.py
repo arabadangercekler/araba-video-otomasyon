@@ -33,7 +33,6 @@ TOPICS = [
     "Turbo motorlar bakımsızlığa daha dayanıksız gerçek mi",
 ]
 
-# Bu tarz kilitli — genel bilgi yok, somut bilgi var
 FALLBACKS = {
     "bmw": """
 BMW 200 bin kilometre sonra bozulur mu sanıyorsun?
@@ -140,11 +139,11 @@ def generate_script(topic):
 Sen Türk YouTube Shorts için samimi bir araba kanalı sunucususun.
 Konu: {topic}
 
-ZORUNLU TARZ (bu tarza sadık kal):
+ZORUNLU TARZ:
 1. İlk cümle "sanıyorsun?" ile bitsin.
 2. İkinci cümle "Sana büyük bir sır vereyim:" ile başlasın.
 3. Herkesin bildiği genel laf YASAK (kaliteli yağ, düzenli bakım, iyi bakarsan uzun ömürlü olur).
-4. Somut, az bilinen bilgi ver. Örnek: "Bu kural 30 yıl önce bitti", "20-30 saniye yeter".
+4. Somut, az bilinen bilgi ver.
 5. "Bu iddia tamamen yalan" demek zorunlu değil.
 6. Kısa cümleler, konuşur gibi. "kilometre" yaz.
 7. Son cümle konuya uygun gönder çağrısı.
@@ -152,7 +151,6 @@ ZORUNLU TARZ (bu tarza sadık kal):
 """)
         text = response.text.strip()
         if text and len(text) > 40:
-            # Genel bilgi sızdıysa yedeğe düş
             bad = ["kaliteli yağ", "düzenli bakım yap", "iyi bakarsan", "uzun ömürlü olur"]
             if any(b in text.lower() for b in bad):
                 print("Genel bilgi tespit, yedek kullanılıyor")
@@ -165,8 +163,6 @@ ZORUNLU TARZ (bu tarza sadık kal):
     return clean_for_speech(pick_fallback(topic))
 
 async def text_to_speech(text, output_file):
-    # Tonlamayı bozmamak için soru işaretine dokunma
-    # Sadece fazla uzun nokta duraklarını biraz yumuşat
     clean = text.replace(". ", ", ")
     communicate = edge_tts.Communicate(clean, VOICE, rate="+9%", pitch="-5Hz")
     word_timings = []
@@ -263,208 +259,6 @@ def download_images(topic, count=16):
 
     if len(images) < 5:
         fallback_q = "BMW+car" if prefer_tag == "bmw" else ("car+snow" if "kışın" in t or "isıtmadan" in t else "sedan+car")
-        url = f"https://pixabay.com/api/?key={PIXABAY_KEY}&q={fallback_q}&image_type=photo&per_page={count}&safesearch=true"
-        try:
-            r = requests.get(url, timeout=12)
-            for i, hit in enumerate(r.json().get("hits", [])[:count]):
-                tags = (hit.get("tags") or "").lower()
-                if any(x in tags for x in exclude):
-                    continue
-                img_url = hit.get("largeImageURL") or hit.get("webformatURL")
-                if not img_url: continue
-                data = requests.get(img_url, timeout=10).content
-                with open(f"img_{i}.jpg", "wb") as f:
-                    f.write(data)
-                images.append(f"img_{i}.jpg")
-        except: pass
-    return images
-
-def make_clip(img_path, duration, move_type=0):
-    bg = ColorClip(size=(W, H), color=(0, 0, 0)).with_duration(duration)
-    clip = ImageClip(img_path)
-    if clip.w / clip.h > W / H:
-        clip = clip.resized(height=int(H * 1.12))
-    else:
-        clip = clip.resized(width=int(W * 1.12))
-    clip = clip.with_duration(duration)
-
-    if move_type == 0:
-        def scale(t): return 1.0 + 0.05 * (t / max(duration, 0.1))
-    elif move_type == 1:
-        def scale(t): return 1.05 - 0.05 * (t / max(duration, 0.1))
-    else:
-        def scale(t): return 1.02 + 0.03 * (t / max(duration, 0.1))
-
-    clip = clip.resized(scale)
-    clip = clip.cropped(width=W, height=H, x_center=clip.w / 2, y_center=clip.h / 2)
-    final = CompositeVideoClip([bg, clip.with_position("center")], size=(W, H))
-    return final.with_duration(duration).resized((W, H))
-
-def create_hook(topic, duration=5.5):
-    t = topic.lower()
-    if "bmw" in t and "200" in t:
-        lines = ["BMW 200 BIN KM SONRA", "BOZULUR MU?"]
-    elif "otomatik" in t:
-        lines = ["OTOMATIK VITES", "BOZULUR MU?"]
-    elif "dizel" in t:
-        lines = ["DIZEL MOTOR", "DAHA DAYANIKLI MI?"]
-    elif "elektrikli" in t or "batarya" in t:
-        lines = ["ELEKTRIKLI ARABA", "BATARYASI BITER MI?"]
-    elif "turbo" in t:
-        lines = ["TURBO MOTOR", "DAHA CABUK BOZULUR MU?"]
-    elif "oktan" in t or "benzin" in t:
-        lines = ["YUKSEK OKTANLI BENZIN", "MOTORU TEMIZLER MI?"]
-    elif "isıtmadan" in t or "kışın" in t:
-        lines = ["KISIN ARABAYI", "ISITMADAN SURMEK ZARARLI MI?"]
-    elif "yeni araba" in t:
-        lines = ["YENI ARABA ALMAK", "DAHA KARLI MI?"]
-    else:
-        words = topic.split()
-        lines = [" ".join(words[:3]).upper(), " ".join(words[3:6]).upper() + "?"]
-
-    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 46)
-    dummy = Image.new("RGBA", (10, 10))
-    d = ImageDraw.Draw(dummy)
-    widths, heights = [], []
-    for line in lines:
-        bbox = d.textbbox((0, 0), line, font=font)
-        widths.append(bbox[2] - bbox[0])
-        heights.append(bbox[3] - bbox[1])
-    tw = max(widths) + 50
-    th = sum(heights) + 50
-
-    img = Image.new("RGBA", (tw, th), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(img)
-    y = 10
-    for i, line in enumerate(lines):
-        x = (tw - widths[i]) // 2
-        for dx, dy in [(-3,-3),(-3,3),(3,-3),(3,3),(-3,0),(3,0),(0,-3),(0,3)]:
-            draw.text((x+dx, y+dy), line, font=font, fill=(0, 0, 0, 255))
-        draw.text((x, y), line, font=font, fill=(255, 255, 255, 255))
-        y += heights[i] + 10
-
-    arr = np.array(img)
-    return ImageClip(arr).with_duration(duration).with_position((40, 280))
-
-def create_subtitles(script, total_duration, word_timings):
-    sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script) if len(s.strip()) > 2]
-    if not sentences:
-        sentences = [script]
-
-    clips = []
-    if word_timings and len(word_timings) > 3:
-        idx = 0
-        for i, s in enumerate(sentences):
-            n = max(len(s.split()), 1)
-            if idx >= len(word_timings):
-                start = clips[-1].start + clips[-1].duration if clips else 0
-                dur = max(total_duration - start, 1.5)
-            else:
-                start = word_timings[idx]["start"]
-                end_idx = min(idx + n - 1, len(word_timings) - 1)
-                end = word_timings[end_idx]["start"] + word_timings[end_idx]["duration"]
-                dur = max(end - start, 1.0)
-                idx += n
-
-            if i == len(sentences) - 1:
-                dur = max(total_duration - start, 1.5)
-
-            words = s.split()
-            display = s if len(words) <= 6 else " ".join(words[:len(words)//2]) + "\n" + " ".join(words[len(words)//2:])
-
-            txt = TextClip(
-                text=display, font_size=26, color="white",
-                stroke_color="black", stroke_width=5, method="caption",
-                size=(780, None),
-                font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-            )
-            clips.append(txt.with_start(start).with_duration(dur).with_position(("center", 980)))
-        return clips
-
-    total_chars = sum(len(s) for s in sentences) or 1
-    current = 0.0
-    for i, s in enumerate(sentences):
-        dur = max((len(s) / total_chars) * total_duration * 0.95, 1.2)
-        if i == len(sentences) - 1:
-            dur = max(total_duration - current, 1.5)
-        words = s.split()
-        display = s if len(words) <= 6 else " ".join(words[:len(words)//2]) + "\n" + " ".join(words[len(words)//2:])
-        txt = TextClip(
-            text=display, font_size=26, color="white",
-            stroke_color="black", stroke_width=5, method="caption",
-            size=(780, None),
-            font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-        )
-        clips.append(txt.with_start(current).with_duration(dur).with_position(("center", 980)))
-        current += dur
-    return clips
-
-def create_video(script, audio_file, images, topic, word_timings, output="video.mp4"):
-    audio = AudioFileClip(audio_file)
-    duration = audio.duration
-    print(f"Ses: {duration:.1f}s")
-
-    if not images:
-        print("Görsel yok")
-        return
-
-    fade = 0.30
-    n = max(12, min(len(images) * 2, int(duration / 1.8)))
-    unique = list(dict.fromkeys(images))
-    images = unique.copy()
-    while len(images) < n:
-        images.append(random.choice(unique))
-    random.shuffle(images)
-    images = images[:n]
-
-    clip_dur = duration / n + fade
-    img_clips = []
-    for i in range(n):
-        c = make_clip(images[i], clip_dur, i % 3)
-        c = c.with_effects([vfx.CrossFadeIn(fade), vfx.CrossFadeOut(fade)])
-        img_clips.append(c)
-
-    video = concatenate_videoclips(img_clips, method="compose", padding=-fade)
-    video = video.with_duration(duration).resized((W, H))
-    video = video.with_audio(audio)
-
-    layers = [video, create_hook(topic, 5.5)] + create_subtitles(script, duration, word_timings)
-
-    final = CompositeVideoClip(layers, size=(W, H)).with_duration(duration)
-    final.write_videofile(output, fps=24, codec="libx264", audio_codec="aac", logger=None)
-    print("Bitti")
-    return output
-
-def main():
-    topic = pick_topic()
-    print(f"Konu: {topic}")
-
-    print("1. Senaryo...")
-    script = generate_script(topic)
-
-    print("2. Ses...")
-    word_timings = asyncio.run(text_to_speech(script, "ses.mp3"))
-
-    print("3. Görsel...")
-    images = download_images(topic, 16)
-    if len(images) < 3:
-        print("Görsel yetersiz")
-        return
-
-    print("4. Video...")
-    create_video(script, "ses.mp3", images, topic, word_timings)
-
-if __name__ == "__main__":
-    main()mages)}.jpg"
-            with open(filename, "wb") as f:
-                f.write(data)
-            images.append(filename)
-            print(f"Görsel {len(images)}")
-        except:
-            continue
-
-    if len(images) < 5:
-        fallback_q = "BMW+car" if prefer_tag == "bmw" else "sedan+car"
         url = f"https://pixabay.com/api/?key={PIXABAY_KEY}&q={fallback_q}&image_type=photo&per_page={count}&safesearch=true"
         try:
             r = requests.get(url, timeout=12)
