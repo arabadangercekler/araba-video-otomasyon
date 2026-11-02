@@ -33,7 +33,7 @@ TOPICS = [
     "Turbo motorlar bakımsızlığa daha dayanıksız gerçek mi",
 ]
 
-# Senin beğendiğin videodaki gibi samimi, konuşur gibi anlatım
+# Senin beğendiğin videodaki gibi samimi, konuşur gibi anlatım (DEĞİŞMEDİ)
 FALLBACKS = {
     "bmw": """
 BMW 200 bin kilometre sonra bozulur mu sanıyorsun?
@@ -136,9 +136,8 @@ def clean_for_speech(text):
     return text
 
 def generate_script(topic):
-    # Şimdilik yedeği öncelikli kullanıyoruz (samimi anlatım garanti)
-    # Gemini sadece gerçekten iyi uyarsa devreye girsin
-    use_fallback_chance = 0.75   # %75 yedek, %25 Gemini denemesi
+    # Aynı mantık (samimi yedek öncelikli)
+    use_fallback_chance = 0.75
 
     if random.random() < use_fallback_chance:
         print("Samimi yedek senaryo kullanılıyor")
@@ -149,7 +148,7 @@ def generate_script(topic):
 Sen Türk YouTube Shorts için samimi bir araba kanalı sunucususun.
 Konu: {topic}
 
-ÖRNEK TARZ (buna çok benzeyeceksin):
+ÖRNEK TARZ:
 "Kışın arabayı dakikalarca boşta ısıtmazsan motorun bozulacağını mı sanıyorsun?
 Sana büyük bir sır vereyim: Bu kural tam otuz yıl önce bitti.
 Eski model arabalarda evet, beklemek gerekiyordu.
@@ -184,8 +183,9 @@ KURALLAR:
     return clean_for_speech(pick_fallback(topic))
 
 async def text_to_speech(text, output_file):
+    # Küçük ses iyileştirmesi (daha doğal)
     clean = text.replace(". ", ", ")
-    communicate = edge_tts.Communicate(clean, VOICE, rate="+9%", pitch="-5Hz")
+    communicate = edge_tts.Communicate(clean, VOICE, rate="+8%", pitch="-4Hz")
     word_timings = []
     with open(output_file, "wb") as f:
         async for chunk in communicate.stream():
@@ -363,6 +363,25 @@ def create_hook(topic, duration=5.5):
     arr = np.array(img)
     return ImageClip(arr).with_duration(duration).with_position((40, 280))
 
+def create_logo(duration):
+    # Sağ alt köşede hafif logo
+    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 28)
+    text = "Arabanı Tanı"
+    dummy = Image.new("RGBA", (10, 10))
+    d = ImageDraw.Draw(dummy)
+    bbox = d.textbbox((0, 0), text, font=font)
+    tw = bbox[2] - bbox[0] + 30
+    th = bbox[3] - bbox[1] + 20
+
+    img = Image.new("RGBA", (tw, th), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+    # hafif gölge
+    draw.text((16, 11), text, font=font, fill=(0, 0, 0, 180))
+    draw.text((15, 10), text, font=font, fill=(255, 255, 255, 220))
+
+    arr = np.array(img)
+    return ImageClip(arr).with_duration(duration).with_position((W - tw - 40, H - th - 60))
+
 def create_subtitles(script, total_duration, word_timings):
     sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script) if len(s.strip()) > 2]
     if not sentences:
@@ -425,7 +444,7 @@ def create_video(script, audio_file, images, topic, word_timings, output="video.
         print("Görsel yok")
         return
 
-    fade = 0.30
+    fade = 0.35   # biraz daha yumuşak geçiş
     n = max(12, min(len(images) * 2, int(duration / 1.8)))
     unique = list(dict.fromkeys(images))
     images = unique.copy()
@@ -445,7 +464,11 @@ def create_video(script, audio_file, images, topic, word_timings, output="video.
     video = video.with_duration(duration).resized((W, H))
     video = video.with_audio(audio)
 
-    layers = [video, create_hook(topic, 5.5)] + create_subtitles(script, duration, word_timings)
+    layers = [
+        video,
+        create_hook(topic, 5.5),
+        create_logo(duration)
+    ] + create_subtitles(script, duration, word_timings)
 
     final = CompositeVideoClip(layers, size=(W, H)).with_duration(duration)
     final.write_videofile(output, fps=24, codec="libx264", audio_codec="aac", logger=None)
