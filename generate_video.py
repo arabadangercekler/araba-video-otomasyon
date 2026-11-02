@@ -170,13 +170,12 @@ ZORUNLU TARZ:
     return clean_for_speech(pick_fallback(topic))
 
 async def text_to_speech(text, output_file):
-    clean = (
-        text.replace(". ", ", ")
-            .replace("! ", ", ")
-            .replace(":", ",")
-    )
-    # Daha dolgun ton, ince robotik sesi azaltır
-    communicate = edge_tts.Communicate(clean, VOICE, rate="+12%", pitch="-8Hz")
+    # Soru işaretlerini KORU (tonlama için).
+    # Sadece normal noktaları yumuşat, bekleme biraz kısalsın.
+    clean = text.replace(". ", ", ")
+    clean = clean.replace("! ", "! ")
+    # ? işaretine dokunma → soru tonu kalsın
+    communicate = edge_tts.Communicate(clean, VOICE, rate="+10%", pitch="-6Hz")
     word_timings = []
     with open(output_file, "wb") as f:
         async for chunk in communicate.stream():
@@ -195,30 +194,30 @@ def download_images(topic, count=16):
     images = []
     t = topic.lower()
 
-    # Konuya özel, net aramalar (alakalı gelsin diye)
+    # Net araba odaklı aramalar
     if "elektrikli" in t or "batarya" in t:
-        queries = ["electric car exterior", "white electric car", "ev car side"]
+        queries = ["electric car exterior", "electric sedan car", "ev car side view"]
     elif "dizel" in t:
-        queries = ["diesel car", "car engine closeup", "sedan car exterior"]
+        queries = ["diesel car exterior", "car engine bay", "sedan car side"]
     elif "otomatik" in t:
-        queries = ["automatic gear shifter car", "car gear lever", "car dashboard interior"]
+        queries = ["automatic gear shifter", "car gear lever close", "car interior console"]
     elif "turbo" in t:
-        queries = ["car turbo engine", "car engine bay", "engine close up car"]
+        queries = ["car turbo engine", "car engine close up", "engine bay car"]
     elif "bmw" in t:
-        queries = ["BMW sedan exterior", "BMW car front", "BMW 5 series"]
+        queries = ["BMW sedan exterior", "BMW car front view", "BMW 3 series car"]
     elif "oktan" in t or "benzin" in t:
-        queries = ["car fuel pump", "gas station car", "petrol nozzle car"]
+        queries = ["car at gas station", "fuel pump car", "petrol nozzle filling car"]
     elif "yeni araba" in t:
-        queries = ["new car exterior", "modern sedan car", "car dealership"]
+        queries = ["new sedan car", "modern car exterior", "car dealership lot"]
     elif "kışın" in t or "isıtmadan" in t:
-        queries = ["car covered snow", "car winter road", "sedan in snow"]
+        queries = ["car in snow outdoor", "snow covered sedan", "winter car road"]
     else:
-        queries = ["sedan car exterior", "modern car side", "automobile exterior"]
+        queries = ["sedan car exterior", "modern car side view", "automobile exterior"]
 
-    # Sadece gerçekten bozan şeyler (insan, oyuncak, tren vb.)
     exclude = [
         "people", "person", "man", "woman", "portrait", "child", "kid", "baby",
         "face", "human", "crowd", "group", "boy", "girl", "worker", "driver",
+        "building", "architecture", "house", "skyscraper", "cityscape",
         "cake", "toy", "miniature",
         "train", "railway", "locomotive", "metro", "subway", "tram",
         "airplane", "aircraft", "plane", "motorcycle", "bike"
@@ -254,10 +253,13 @@ def download_images(topic, count=16):
             print(f"Görsel hatası ({q}): {e}")
 
     if len(images) < 5:
-        url = f"https://pixabay.com/api/?key={PIXABAY_KEY}&q=car+sedan&image_type=photo&per_page={count}&safesearch=true"
+        url = f"https://pixabay.com/api/?key={PIXABAY_KEY}&q=sedan+car&image_type=photo&per_page={count}&safesearch=true"
         try:
             r = requests.get(url, timeout=12)
             for i, hit in enumerate(r.json().get("hits", [])[:count]):
+                tags = (hit.get("tags") or "").lower()
+                if any(x in tags for x in exclude):
+                    continue
                 img_url = hit.get("largeImageURL") or hit.get("webformatURL")
                 if not img_url: continue
                 data = requests.get(img_url, timeout=10).content
