@@ -170,11 +170,8 @@ ZORUNLU TARZ:
     return clean_for_speech(pick_fallback(topic))
 
 async def text_to_speech(text, output_file):
-    # Soru işaretlerini KORU (tonlama için).
-    # Sadece normal noktaları yumuşat, bekleme biraz kısalsın.
+    # Soru işaretlerini koru (tonlama için). Sadece normal noktaları yumuşat.
     clean = text.replace(". ", ", ")
-    clean = clean.replace("! ", "! ")
-    # ? işaretine dokunma → soru tonu kalsın
     communicate = edge_tts.Communicate(clean, VOICE, rate="+10%", pitch="-6Hz")
     word_timings = []
     with open(output_file, "wb") as f:
@@ -193,8 +190,8 @@ async def text_to_speech(text, output_file):
 def download_images(topic, count=16):
     images = []
     t = topic.lower()
+    prefer_tag = None
 
-    # Net araba odaklı aramalar
     if "elektrikli" in t or "batarya" in t:
         queries = ["electric car exterior", "electric sedan car", "ev car side view"]
     elif "dizel" in t:
@@ -204,7 +201,8 @@ def download_images(topic, count=16):
     elif "turbo" in t:
         queries = ["car turbo engine", "car engine close up", "engine bay car"]
     elif "bmw" in t:
-        queries = ["BMW sedan exterior", "BMW car front view", "BMW 3 series car"]
+        queries = ["BMW sedan", "BMW 3 series", "BMW 5 series", "BMW car"]
+        prefer_tag = "bmw"
     elif "oktan" in t or "benzin" in t:
         queries = ["car at gas station", "fuel pump car", "petrol nozzle filling car"]
     elif "yeni araba" in t:
@@ -220,40 +218,55 @@ def download_images(topic, count=16):
         "building", "architecture", "house", "skyscraper", "cityscape",
         "cake", "toy", "miniature",
         "train", "railway", "locomotive", "metro", "subway", "tram",
-        "airplane", "aircraft", "plane", "motorcycle", "bike"
+        "airplane", "aircraft", "plane", "motorcycle", "bike",
+        "lamborghini", "ferrari", "porsche", "supercar"
     ]
 
+    preferred = []
+    others = []
+
     for q in queries:
-        if len(images) >= count:
+        if len(preferred) + len(others) >= count * 2:
             break
         url = (
             f"https://pixabay.com/api/?key={PIXABAY_KEY}"
             f"&q={q.replace(' ', '+')}&image_type=photo"
-            f"&per_page=20&safesearch=true"
+            f"&per_page=25&safesearch=true"
         )
         try:
             r = requests.get(url, timeout=12)
             hits = r.json().get("hits", [])
             for hit in hits:
-                if len(images) >= count:
-                    break
                 tags = (hit.get("tags") or "").lower()
                 if any(x in tags for x in exclude):
                     continue
                 img_url = hit.get("largeImageURL") or hit.get("webformatURL")
                 if not img_url:
                     continue
-                data = requests.get(img_url, timeout=10).content
-                filename = f"img_{len(images)}.jpg"
-                with open(filename, "wb") as f:
-                    f.write(data)
-                images.append(filename)
-                print(f"Görsel {len(images)}: {q}")
+                if prefer_tag and prefer_tag in tags:
+                    preferred.append(img_url)
+                else:
+                    others.append(img_url)
         except Exception as e:
             print(f"Görsel hatası ({q}): {e}")
 
+    urls = preferred + others
+    for img_url in urls:
+        if len(images) >= count:
+            break
+        try:
+            data = requests.get(img_url, timeout=10).content
+            filename = f"img_{len(images)}.jpg"
+            with open(filename, "wb") as f:
+                f.write(data)
+            images.append(filename)
+            print(f"Görsel {len(images)}")
+        except:
+            continue
+
     if len(images) < 5:
-        url = f"https://pixabay.com/api/?key={PIXABAY_KEY}&q=sedan+car&image_type=photo&per_page={count}&safesearch=true"
+        fallback_q = "BMW+car" if prefer_tag == "bmw" else "sedan+car"
+        url = f"https://pixabay.com/api/?key={PIXABAY_KEY}&q={fallback_q}&image_type=photo&per_page={count}&safesearch=true"
         try:
             r = requests.get(url, timeout=12)
             for i, hit in enumerate(r.json().get("hits", [])[:count]):
