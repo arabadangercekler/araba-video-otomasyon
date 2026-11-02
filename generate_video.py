@@ -204,7 +204,6 @@ def download_images(topic, count=16):
     images = []
     t = topic.lower()
     prefer_tag = None
-
     if "elektrikli" in t or "batarya" in t:
         queries = ["electric car exterior", "electric sedan", "ev car"]
     elif "dizel" in t:
@@ -241,7 +240,6 @@ def download_images(topic, count=16):
 
     preferred = []
     others = []
-
     for q in queries:
         if len(preferred) + len(others) >= count * 4:
             break
@@ -336,14 +334,12 @@ def download_images(topic, count=16):
     else:
         clip = clip.resized(width=int(W * 1.12))
     clip = clip.with_duration(duration)
-
     if move_type == 0:
         def scale(t): return 1.0 + 0.05 * (t / max(duration, 0.1))
     elif move_type == 1:
         def scale(t): return 1.05 - 0.05 * (t / max(duration, 0.1))
     else:
         def scale(t): return 1.02 + 0.03 * (t / max(duration, 0.1))
-
     clip = clip.resized(scale)
     clip = clip.cropped(width=W, height=H, x_center=clip.w / 2, y_center=clip.h / 2)
     final = CompositeVideoClip([bg, clip.with_position("center")], size=(W, H))
@@ -370,7 +366,6 @@ def create_hook(topic, duration=5.5):
     else:
         words = topic.split()
         lines = [" ".join(words[:3]).upper(), " ".join(words[3:6]).upper() + "?"]
-
     font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 46)
     dummy = Image.new("RGBA", (10, 10))
     d = ImageDraw.Draw(dummy)
@@ -381,7 +376,6 @@ def create_hook(topic, duration=5.5):
         heights.append(bbox[3] - bbox[1])
     tw = max(widths) + 50
     th = sum(heights) + 50
-
     img = Image.new("RGBA", (tw, th), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
     y = 10
@@ -391,7 +385,6 @@ def create_hook(topic, duration=5.5):
             draw.text((x+dx, y+dy), line, font=font, fill=(0, 0, 0, 255))
         draw.text((x, y), line, font=font, fill=(255, 255, 255, 255))
         y += heights[i] + 10
-
     arr = np.array(img)
     return ImageClip(arr).with_duration(duration).with_position((40, 280))
 
@@ -399,7 +392,6 @@ def create_subtitles(script, total_duration, word_timings):
     sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script) if len(s.strip()) > 2]
     if not sentences:
         sentences = [script]
-
     clips = []
     if word_timings and len(word_timings) > 3:
         idx = 0
@@ -418,15 +410,9 @@ def create_subtitles(script, total_duration, word_timings):
                 dur = max(total_duration - start, 1.5)
             words = s.split()
             display = s if len(words) <= 6 else " ".join(words[:len(words)//2]) + "\n" + " ".join(words[len(words)//2:])
-            txt = TextClip(
-                text=display, font_size=26, color="white",
-                stroke_color="black", stroke_width=5, method="caption",
-                size=(780, None),
-                font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-            )
+            txt = TextClip(text=display, font_size=26, color="white", stroke_color="black", stroke_width=5, method="caption", size=(780, None), font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")
             clips.append(txt.with_start(start).with_duration(dur).with_position(("center", 980)))
         return clips
-
     total_chars = sum(len(s) for s in sentences) or 1
     current = 0.0
     for i, s in enumerate(sentences):
@@ -435,12 +421,7 @@ def create_subtitles(script, total_duration, word_timings):
             dur = max(total_duration - current, 1.5)
         words = s.split()
         display = s if len(words) <= 6 else " ".join(words[:len(words)//2]) + "\n" + " ".join(words[len(words)//2:])
-        txt = TextClip(
-            text=display, font_size=26, color="white",
-            stroke_color="black", stroke_width=5, method="caption",
-            size=(780, None),
-            font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-        )
+        txt = TextClip(text=display, font_size=26, color="white", stroke_color="black", stroke_width=5, method="caption", size=(780, None), font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")
         clips.append(txt.with_start(current).with_duration(dur).with_position(("center", 980)))
         current += dur
     return clips
@@ -450,15 +431,12 @@ def create_video(script, audio_file, images, topic, word_timings, output="video.
     audio = audio.with_volume_scaled(1.6)
     duration = audio.duration
     print(f"Ses: {duration:.1f}s")
-
     valid_images = [img for img in images if is_valid_image(img)]
     if len(valid_images) < 3:
         print("Yeterli geçerli görsel yok!")
         return
-
     images = valid_images
     print(f"Kullanılacak görsel sayısı: {len(images)}")
-
     fade = 0.35
     n = max(12, min(len(images) * 2, int(duration / 1.8)))
     unique = list(dict.fromkeys(images))
@@ -467,7 +445,6 @@ def create_video(script, audio_file, images, topic, word_timings, output="video.
         images.append(random.choice(unique))
     random.shuffle(images)
     images = images[:n]
-
     clip_dur = duration / n + fade
     img_clips = []
     for i in range(n):
@@ -478,15 +455,12 @@ def create_video(script, audio_file, images, topic, word_timings, output="video.
         except Exception as e:
             print(f"Clip hatası ({images[i]}): {e}")
             continue
-
     if not img_clips:
         print("Hiç clip oluşturulamadı!")
         return
-
     video = concatenate_videoclips(img_clips, method="compose", padding=-fade)
     video = video.with_duration(duration).resized((W, H))
     video = video.with_audio(audio)
-
     layers = [video, create_hook(topic, 5.5)] + create_subtitles(script, duration, word_timings)
     final = CompositeVideoClip(layers, size=(W, H)).with_duration(duration)
     final.write_videofile(output, fps=24, codec="libx264", audio_codec="aac", logger=None)
