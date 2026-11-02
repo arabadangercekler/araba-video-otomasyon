@@ -40,7 +40,7 @@ Sana büyük bir sır vereyim: Düzenli bakımlı BMW'ler 400 bin kilometreyi ra
 Asıl sorun geç yağ değişimi ve soğuk motora basılan gaz.
 Bakımı yapılan araçta zincir sorunu bile geç çıkar.
 Bu iddia tamamen yalan.
-Bu videoyu hemen babana gönder de o da gerçeği öğrensin.
+Bunu bilmeyen birine gönder, o da gerçeği öğrensin.
 """,
     "kisin": """
 Kışın arabayı dakikalarca boşta ısıtmazsan motorun bozulacağını mı sanıyorsun?
@@ -62,7 +62,7 @@ Sana büyük bir sır vereyim: Yağ soğutması düzgün yapılırsa turbo uzun 
 Motoru stop etmeden önce bir dakika rölantide beklemek önemli.
 Ucuz yağ ve ihmal asıl suçlu.
 Bu iddia tamamen yalan.
-Bu videoyu hemen babana gönder de o da gerçeği öğrensin.
+Bunu bilmeyen birine gönder, o da gerçeği öğrensin.
 """,
     "dizel": """
 Dizel motorlar benzinliye göre daha dayanıklı mı sanıyorsun?
@@ -70,7 +70,7 @@ Sana büyük bir sır vereyim: Eski dizeller gerçekten uzun yaşardı.
 Yeni dizellerde ekstra sistemler var, bakım ister.
 Bakım yapılmazsa masrafı benzinliden fazla çıkabiliyor.
 Dayanıklılık aracın kullanımına bağlı.
-Bu videoyu hemen babana gönder de o da gerçeği öğrensin.
+Bunu bilmeyen birine gönder, o da gerçeği öğrensin.
 """,
     "elektrikli": """
 Elektrikli arabaların bataryası 5 yılda biter mi sanıyorsun?
@@ -78,7 +78,7 @@ Sana büyük bir sır vereyim: Üreticiler genelde 8 yıl veya 160 bin kilometre
 Gerçek hayatta çoğu batarya 10-15 yıl dayanıyor.
 Sık hızlı şarj ömrü biraz kısaltabiliyor.
 5 yılda biter demek abartı. Bu iddia tamamen yalan.
-Bu videoyu hemen babana gönder de o da gerçeği öğrensin.
+Elektrikli araba düşünen birine gönder, o da bilsin.
 """,
     "otomatik": """
 Otomatik vitesli arabalar daha çabuk bozulur mu sanıyorsun?
@@ -86,7 +86,7 @@ Sana büyük bir sır vereyim: Eski otomatikler bakım isterdi, yeniler daha day
 Yağ değişimi yapılmazsa sorun çıkar.
 Doğru kullanımda otomatik vites uzun yaşar.
 Bu iddia tamamen yalan.
-Bu videoyu hemen babana gönder de o da gerçeği öğrensin.
+Bunu bilmeyen birine gönder, o da gerçeği öğrensin.
 """,
     "oktan": """
 Yüksek oktanlı benzin motoru temizler mi sanıyorsun?
@@ -94,7 +94,7 @@ Sana büyük bir sır vereyim: Oktan sayısı vuruntuyu önler, motoru temizleme
 Motorun istediği oktanın üstüne çıkmak güç artırmaz.
 Temizlik için özel katkı gerekir, pahalı benzin değil.
 Bu iddia tamamen yalan.
-Bu videoyu hemen babana gönder de o da gerçeği öğrensin.
+Bunu bilmeyen birine gönder, o da gerçeği öğrensin.
 """,
     "yeni": """
 Yeni araba almak eski arabadan daha kârlı mı sanıyorsun?
@@ -102,7 +102,7 @@ Sana büyük bir sır vereyim: İlk 3 yılda yeni araba değer kaybı yüksektir
 Bakımlı 2-3 yaşındaki araç çoğu zaman daha mantıklı.
 Sigorta ve vergi de yeni arabada daha pahalı olabilir.
 Her zaman yeni almak kârlı değil.
-Bu videoyu hemen babana gönder de o da gerçeği öğrensin.
+Yeni araba almayı düşünen birine hemen gönder, o da bilsin.
 """
 }
 
@@ -152,9 +152,12 @@ ZORUNLU TARZ:
 2. İkinci cümle: "Sana büyük bir sır vereyim:" veya "Sana bir sır vereyim:" ile başlasın.
 3. Kısa cümleler. Konuşur gibi yaz. Teknik kelime yok.
 4. "km" yazma, "kilometre" yaz.
-5. Son 1-2 cümle mutlaka şöyle bitsin:
-   "Bu videoyu hemen babana gönder de o da gerçeği öğrensin."
-   veya benzer samimi gönder çağrısı.
+5. Son cümle mutlaka konuya uygun bir gönder çağrısı olsun.
+   Örnekler:
+   - Kış / ısıtma konusuysa: "Bu videoyu hemen babana gönder de o da gerçeği öğrensin."
+   - Yeni araba konusuysa: "Yeni araba almayı düşünen birine hemen gönder, o da bilsin."
+   - BMW / turbo / dizel gibiyse: "Bunu bilmeyen birine gönder, o da gerçeği öğrensin."
+   Konuya uymayan genel "babana gönder" deme.
 6. 50-55 saniye. Sadece konuşma metni. Türkçe.
 """)
         text = response.text.strip()
