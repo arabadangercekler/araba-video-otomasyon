@@ -326,7 +326,8 @@ def download_images(topic, count=16):
 
     print(f"Toplam geçerli görsel: {len(images)}")
     return images
-    def make_clip(img_path, duration, move_type=0):
+
+def make_clip(img_path, duration, move_type=0):
     bg = ColorClip(size=(W, H), color=(0, 0, 0)).with_duration(duration)
     clip = ImageClip(img_path)
     if clip.w / clip.h > W / H:
