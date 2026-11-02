@@ -170,8 +170,9 @@ ZORUNLU TARZ:
     return clean_for_speech(pick_fallback(topic))
 
 async def text_to_speech(text, output_file):
-    # Daha doğal ton — video yapısını bozmadan sadece ses
-    communicate = edge_tts.Communicate(text, VOICE, rate="+8%", pitch="-4Hz")
+    # Noktaları yumuşat → cümle arası bekleme kısalır
+    clean = text.replace(". ", ", ").replace("! ", ", ")
+    communicate = edge_tts.Communicate(clean, VOICE, rate="+11%", pitch="-5Hz")
     word_timings = []
     with open(output_file, "wb") as f:
         async for chunk in communicate.stream():
@@ -213,6 +214,7 @@ def download_images(topic, count=16):
     # Sadece gerçekten bozan şeyler (insan, oyuncak, tren vb.)
     exclude = [
         "people", "person", "man", "woman", "portrait", "child", "kid", "baby",
+        "face", "human", "crowd", "group", "boy", "girl", "worker", "driver",
         "cake", "toy", "miniature",
         "train", "railway", "locomotive", "metro", "subway", "tram",
         "airplane", "aircraft", "plane", "motorcycle", "bike"
