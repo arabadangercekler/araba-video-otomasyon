@@ -135,7 +135,8 @@ def clean_for_speech(text):
     return text
 
 def generate_script(topic):
-    use_fallback_chance = 0.75
+    # Daha yüksek yedek ihtimali → genel bilgi riski azalır
+    use_fallback_chance = 0.85
 
     if random.random() < use_fallback_chance:
         print("Samimi yedek senaryo kullanılıyor")
@@ -146,7 +147,7 @@ def generate_script(topic):
 Sen Türk YouTube Shorts için samimi bir araba kanalı sunucususun.
 Konu: {topic}
 
-ÖRNEK TARZ:
+ÖRNEK TARZ (buna çok benzeyeceksin):
 "Kışın arabayı dakikalarca boşta ısıtmazsan motorun bozulacağını mı sanıyorsun?
 Sana büyük bir sır vereyim: Bu kural tam otuz yıl önce bitti.
 Eski model arabalarda evet, beklemek gerekiyordu.
@@ -158,17 +159,20 @@ KURALLAR:
 1. İlk cümle "sanıyorsun?" ile bitsin.
 2. İkinci cümle "Sana büyük bir sır vereyim:" ile başlasın.
 3. Özet gibi konuşma. Karşındaki adama anlatır gibi, samimi ve net ol.
-4. Genel laf yasak (kaliteli yağ, düzenli bakım, iyi bakarsan uzun ömürlü).
-5. Somut bilgi ver. Kısa cümleler.
+4. Genel laf YASAK: kaliteli yağ, düzenli bakım, iyi bakarsan, uzun ömürlü olur, bakım yaparsan gibi herkesin bildiği şeyler.
+5. Somut, şaşırtıcı bilgi ver.
 6. "kilometre" yaz.
 7. Son cümle gönder çağrısı olsun.
 8. En az 45 saniye sürecek uzunlukta yaz. Sadece konuşma metni. Türkçe.
 """)
         text = response.text.strip()
         if text and len(text) > 200:
-            bad = ["kaliteli yağ", "düzenli bakım yap", "iyi bakarsan", "uzun ömürlü olur", "özetle", "kısaca"]
+            bad = [
+                "kaliteli yağ", "düzenli bakım", "iyi bakarsan", "uzun ömürlü",
+                "bakım yaparsan", "özetle", "kısaca", "genel olarak"
+            ]
             if any(b in text.lower() for b in bad):
-                print("Uymayan metin → yedek")
+                print("Genel bilgi tespit edildi → yedek")
                 return clean_for_speech(pick_fallback(topic))
             print("Gemini senaryosu kabul edildi")
             return clean_for_speech(text)
@@ -181,9 +185,9 @@ KURALLAR:
     return clean_for_speech(pick_fallback(topic))
 
 async def text_to_speech(text, output_file):
-    # Daha belirgin ses ayarı
+    # Daha hızlı ve akıcı
     clean = text.replace(". ", ", ")
-    communicate = edge_tts.Communicate(clean, VOICE, rate="+6%", pitch="-7Hz")
+    communicate = edge_tts.Communicate(clean, VOICE, rate="+12%", pitch="-5Hz")
     word_timings = []
     with open(output_file, "wb") as f:
         async for chunk in communicate.stream():
