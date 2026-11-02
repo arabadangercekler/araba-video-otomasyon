@@ -33,7 +33,7 @@ TOPICS = [
     "Turbo motorlar bakımsızlığa daha dayanıksız gerçek mi",
 ]
 
-# Senin beğendiğin tarza kilitli yedekler
+# Senin beğendiğin videodaki gibi samimi, konuşur gibi anlatım
 FALLBACKS = {
     "bmw": """
 BMW 200 bin kilometre sonra bozulur mu sanıyorsun?
@@ -59,9 +59,9 @@ Bu videoyu hemen babana gönder de o da gerçeği öğrensin.
 """,
     "turbo": """
 Turbo motorlar daha çabuk bozulur mu sanıyorsun?
-Sana büyük bir sır vereyim: Turbo'yu bitiren şey motor değil, stop sonrası hemen kapatmak.
+Sana büyük bir sır vereyim: Turbo’yu bitiren şey motor değil, stop sonrası hemen kapatmak.
 Yağ hâlâ sıcarken pompa durursa turbo yatakları kuru kalır.
-Stop etmeden önce 30-60 saniye rölanti, ömrü ciddi uzatır.
+Stop etmeden önce 30-60 saniye rölanti yeter, ömrü ciddi uzatır.
 Bunu bilmeyen birine gönder, o da gerçeği öğrensin.
 """,
     "dizel": """
@@ -81,7 +81,7 @@ Elektrikli araba düşünen birine gönder, o da bilsin.
     "otomatik": """
 Otomatik vitesli arabalar daha çabuk bozulur mu sanıyorsun?
 Sana büyük bir sır vereyim: Yeni otomatik kutular doğru yağla 300 bin kilometreyi geçebiliyor.
-Asıl sorun ömür boyu yağ yalanı. 60-80 binde yağ değişmezse kutu yoruluyor.
+Asıl sorun “ömür boyu yağ” yalanı. 60-80 binde yağ değişmezse kutu yoruluyor.
 Bunu bilmeyen birine gönder, o da gerçeği öğrensin.
 """,
     "oktan": """
@@ -136,34 +136,51 @@ def clean_for_speech(text):
     return text
 
 def generate_script(topic):
-    # Kısa veya sapmış metin istemiyoruz — yedek öncelikli kontrol
+    # Şimdilik yedeği öncelikli kullanıyoruz (samimi anlatım garanti)
+    # Gemini sadece gerçekten iyi uyarsa devreye girsin
+    use_fallback_chance = 0.75   # %75 yedek, %25 Gemini denemesi
+
+    if random.random() < use_fallback_chance:
+        print("Samimi yedek senaryo kullanılıyor")
+        return clean_for_speech(pick_fallback(topic))
+
     try:
         response = model.generate_content(f"""
 Sen Türk YouTube Shorts için samimi bir araba kanalı sunucususun.
 Konu: {topic}
 
-ZORUNLU:
+ÖRNEK TARZ (buna çok benzeyeceksin):
+"Kışın arabayı dakikalarca boşta ısıtmazsan motorun bozulacağını mı sanıyorsun?
+Sana büyük bir sır vereyim: Bu kural tam otuz yıl önce bitti.
+Eski model arabalarda evet, beklemek gerekiyordu.
+Ama şimdiki arabalar öyle değil.
+...
+Bu videoyu hemen babana gönder de o da gerçeği öğrensin."
+
+KURALLAR:
 1. İlk cümle "sanıyorsun?" ile bitsin.
 2. İkinci cümle "Sana büyük bir sır vereyim:" ile başlasın.
-3. Genel laf YASAK (kaliteli yağ, düzenli bakım, iyi bakarsan uzun ömürlü).
-4. Somut bilgi ver. Kısa cümleler.
-5. "kilometre" yaz.
-6. Son cümle gönder çağrısı olsun.
-7. En az 45 saniye sürecek uzunlukta yaz. Türkçe. Sadece konuşma metni.
+3. Özet gibi konuşma. Karşındaki adama anlatır gibi, samimi ve net ol.
+4. Genel laf yasak (kaliteli yağ, düzenli bakım, iyi bakarsan uzun ömürlü).
+5. Somut bilgi ver. Kısa cümleler.
+6. "kilometre" yaz.
+7. Son cümle gönder çağrısı olsun.
+8. En az 45 saniye sürecek uzunlukta yaz. Sadece konuşma metni. Türkçe.
 """)
         text = response.text.strip()
-        if text and len(text) > 180:  # çok kısa gelmesin
-            bad = ["kaliteli yağ", "düzenli bakım yap", "iyi bakarsan", "uzun ömürlü olur"]
+        if text and len(text) > 200:
+            bad = ["kaliteli yağ", "düzenli bakım yap", "iyi bakarsan", "uzun ömürlü olur", "özetle", "kısaca"]
             if any(b in text.lower() for b in bad):
-                print("Genel bilgi → yedek")
+                print("Uymayan metin → yedek")
                 return clean_for_speech(pick_fallback(topic))
-            print("Gemini senaryosu OK")
+            print("Gemini senaryosu kabul edildi")
             return clean_for_speech(text)
         else:
             print("Metin kısa → yedek")
     except Exception as e:
         print(f"Gemini hatası: {e}")
-    print("Yedek senaryo kullanılıyor")
+
+    print("Yedek senaryo")
     return clean_for_speech(pick_fallback(topic))
 
 async def text_to_speech(text, output_file):
