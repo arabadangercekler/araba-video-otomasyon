@@ -170,9 +170,8 @@ ZORUNLU TARZ:
     return clean_for_speech(pick_fallback(topic))
 
 async def text_to_speech(text, output_file):
-    # Cümle arası beklemeyi azalt
-    clean = text.replace(". ", ", ").replace("! ", ", ")
-    communicate = edge_tts.Communicate(clean, VOICE, rate="+12%", pitch="-2Hz")
+    # Daha doğal ton — video yapısını bozmadan sadece ses
+    communicate = edge_tts.Communicate(text, VOICE, rate="+8%", pitch="-4Hz")
     word_timings = []
     with open(output_file, "wb") as f:
         async for chunk in communicate.stream():
