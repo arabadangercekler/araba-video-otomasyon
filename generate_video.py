@@ -136,21 +136,17 @@ def clean_for_speech(text):
 
 def generate_script(topic):
     use_fallback_chance = 0.95
-
     if random.random() < use_fallback_chance:
         print("Samimi yedek senaryo kullanılıyor")
         return clean_for_speech(pick_fallback(topic))
-
     try:
         response = model.generate_content(f"""
 Sen Türk YouTube Shorts için samimi bir araba kanalı sunucususun.
 Konu: {topic}
-
 ÖRNEK TARZ:
 "Kışın arabayı dakikalarca boşta ısıtmazsan motorun bozulacağını mı sanıyorsun?
 Sana büyük bir sır vereyim: Bu kural tam otuz yıl önce bitti.
 ..."
-
 KURALLAR:
 1. İlk cümle "sanıyorsun?" ile bitsin.
 2. İkinci cümle "Sana büyük bir sır vereyim:" ile başlasın.
@@ -162,10 +158,7 @@ KURALLAR:
 """)
         text = response.text.strip()
         if text and len(text) > 200:
-            bad = [
-                "kaliteli yağ", "düzenli bakım", "iyi bakarsan", "uzun ömürlü",
-                "bakım yaparsan", "özetle", "kısaca", "genel olarak", "herkes bilir"
-            ]
+            bad = ["kaliteli yağ", "düzenli bakım", "iyi bakarsan", "uzun ömürlü", "bakım yaparsan", "özetle", "kısaca", "genel olarak", "herkes bilir"]
             if any(b in text.lower() for b in bad):
                 print("Genel bilgi → yedek")
                 return clean_for_speech(pick_fallback(topic))
@@ -173,20 +166,12 @@ KURALLAR:
             return clean_for_speech(text)
     except Exception as e:
         print(f"Gemini hatası: {e}")
-
     print("Yedek senaryo")
     return clean_for_speech(pick_fallback(topic))
 
 async def text_to_speech(text, output_file):
     clean = text.replace(". ", ", ")
-    # Ses daha yüksek + biraz daha canlı
-    communicate = edge_tts.Communicate(
-        clean, 
-        VOICE, 
-        rate="+11%", 
-        pitch="-4Hz",
-        volume="+25%"
-    )
+    communicate = edge_tts.Communicate(clean, VOICE, rate="+11%", pitch="-4Hz", volume="+25%")
     word_timings = []
     with open(output_file, "wb") as f:
         async for chunk in communicate.stream():
@@ -200,6 +185,20 @@ async def text_to_speech(text, output_file):
                 })
     print(f"Ses OK | {len(word_timings)} kelime")
     return word_timings
+
+def is_valid_image(filepath):
+    try:
+        if not os.path.exists(filepath) or os.path.getsize(filepath) < 5000:
+            return False
+        with Image.open(filepath) as img:
+            img.verify()
+        with Image.open(filepath) as img:
+            img.load()
+            if img.width < 200 or img.height < 200:
+                return False
+        return True
+    except Exception:
+        return False
 
 def download_images(topic, count=16):
     images = []
@@ -244,13 +243,9 @@ def download_images(topic, count=16):
     others = []
 
     for q in queries:
-        if len(preferred) + len(others) >= count * 3:
+        if len(preferred) + len(others) >= count * 4:
             break
-        url = (
-            f"https://pixabay.com/api/?key={PIXABAY_KEY}"
-            f"&q={q.replace(' ', '+')}&image_type=photo"
-            f"&per_page=30&safesearch=true"
-        )
+        url = f"https://pixabay.com/api/?key={PIXABAY_KEY}&q={q.replace(' ', '+')}&image_type=photo&per_page=30&safesearch=true"
         try:
             r = requests.get(url, timeout=12)
             hits = r.json().get("hits", [])
@@ -275,36 +270,65 @@ def download_images(topic, count=16):
         if len(images) >= count:
             break
         try:
-            data = requests.get(img_url, timeout=10).content
+            data = requests.get(img_url, timeout=12).content
+            if len(data) < 5000:
+                continue
             filename = f"img_{len(images)}.jpg"
             with open(filename, "wb") as f:
                 f.write(data)
-            images.append(filename)
-            print(f"Görsel {len(images)}")
-        except:
+            if is_valid_image(filename):
+                images.append(filename)
+                print(f"Görsel {len(images)} OK")
+            else:
+                print(f"Bozuk görsel atlandı: {filename}")
+                try:
+                    os.remove(filename)
+                except:
+                    pass
+        except Exception as e:
+            print(f"İndirme hatası: {e}")
             continue
 
     if len(images) < 5:
+        print("Yeterli görsel yok, yedek arama...")
         fallback_q = "BMW+car" if prefer_tag == "bmw" else ("car+snow" if "kışın" in t or "isıtmadan" in t else "sedan+car")
-        url = f"https://pixabay.com/api/?key={PIXABAY_KEY}&q={fallback_q}&image_type=photo&per_page={count}&safesearch=true"
+        url = f"https://pixabay.com/api/?key={PIXABAY_KEY}&q={fallback_q}&image_type=photo&per_page=40&safesearch=true"
         try:
             r = requests.get(url, timeout=12)
-            for i, hit in enumerate(r.json().get("hits", [])[:count]):
+            for hit in r.json().get("hits", []):
+                if len(images) >= count:
+                    break
                 tags = (hit.get("tags") or "").lower()
                 if any(x in tags for x in exclude):
                     continue
                 if not any(x in tags for x in ["car", "auto", "vehicle", "sedan", "bmw"]):
                     continue
                 img_url = hit.get("largeImageURL") or hit.get("webformatURL")
-                if not img_url: continue
-                data = requests.get(img_url, timeout=10).content
-                with open(f"img_{i}.jpg", "wb") as f:
-                    f.write(data)
-                images.append(f"img_{i}.jpg")
-        except: pass
-    return images
+                if not img_url:
+                    continue
+                try:
+                    data = requests.get(img_url, timeout=10).content
+                    if len(data) < 5000:
+                        continue
+                    filename = f"img_{len(images)}.jpg"
+                    with open(filename, "wb") as f:
+                        f.write(data)
+                    if is_valid_image(filename):
+                        images.append(filename)
+                        print(f"Yedek görsel {len(images)} OK")
+                    else:
+                        try:
+                            os.remove(filename)
+                        except:
+                            pass
+                except:
+                    continue
+        except Exception as e:
+            print(f"Yedek arama hatası: {e}")
 
-def make_clip(img_path, duration, move_type=0):
+    print(f"Toplam geçerli görsel: {len(images)}")
+    return images
+    def make_clip(img_path, duration, move_type=0):
     bg = ColorClip(size=(W, H), color=(0, 0, 0)).with_duration(duration)
     clip = ImageClip(img_path)
     if clip.w / clip.h > W / H:
@@ -390,13 +414,10 @@ def create_subtitles(script, total_duration, word_timings):
                 end = word_timings[end_idx]["start"] + word_timings[end_idx]["duration"]
                 dur = max(end - start, 1.0)
                 idx += n
-
             if i == len(sentences) - 1:
                 dur = max(total_duration - start, 1.5)
-
             words = s.split()
             display = s if len(words) <= 6 else " ".join(words[:len(words)//2]) + "\n" + " ".join(words[len(words)//2:])
-
             txt = TextClip(
                 text=display, font_size=26, color="white",
                 stroke_color="black", stroke_width=5, method="caption",
@@ -426,14 +447,17 @@ def create_subtitles(script, total_duration, word_timings):
 
 def create_video(script, audio_file, images, topic, word_timings, output="video.mp4"):
     audio = AudioFileClip(audio_file)
-    # Ses seviyesini daha da yükselt
     audio = audio.with_volume_scaled(1.6)
     duration = audio.duration
     print(f"Ses: {duration:.1f}s")
 
-    if not images:
-        print("Görsel yok")
+    valid_images = [img for img in images if is_valid_image(img)]
+    if len(valid_images) < 3:
+        print("Yeterli geçerli görsel yok!")
         return
+
+    images = valid_images
+    print(f"Kullanılacak görsel sayısı: {len(images)}")
 
     fade = 0.35
     n = max(12, min(len(images) * 2, int(duration / 1.8)))
@@ -447,19 +471,23 @@ def create_video(script, audio_file, images, topic, word_timings, output="video.
     clip_dur = duration / n + fade
     img_clips = []
     for i in range(n):
-        c = make_clip(images[i], clip_dur, i % 3)
-        c = c.with_effects([vfx.CrossFadeIn(fade), vfx.CrossFadeOut(fade)])
-        img_clips.append(c)
+        try:
+            c = make_clip(images[i], clip_dur, i % 3)
+            c = c.with_effects([vfx.CrossFadeIn(fade), vfx.CrossFadeOut(fade)])
+            img_clips.append(c)
+        except Exception as e:
+            print(f"Clip hatası ({images[i]}): {e}")
+            continue
+
+    if not img_clips:
+        print("Hiç clip oluşturulamadı!")
+        return
 
     video = concatenate_videoclips(img_clips, method="compose", padding=-fade)
     video = video.with_duration(duration).resized((W, H))
     video = video.with_audio(audio)
 
-    layers = [
-        video,
-        create_hook(topic, 5.5)
-    ] + create_subtitles(script, duration, word_timings)
-
+    layers = [video, create_hook(topic, 5.5)] + create_subtitles(script, duration, word_timings)
     final = CompositeVideoClip(layers, size=(W, H)).with_duration(duration)
     final.write_videofile(output, fps=24, codec="libx264", audio_codec="aac", logger=None)
     print("Bitti")
@@ -468,19 +496,15 @@ def create_video(script, audio_file, images, topic, word_timings, output="video.
 def main():
     topic = pick_topic()
     print(f"Konu: {topic}")
-
     print("1. Senaryo...")
     script = generate_script(topic)
-
     print("2. Ses...")
     word_timings = asyncio.run(text_to_speech(script, "ses.mp3"))
-
     print("3. Görsel...")
     images = download_images(topic, 16)
     if len(images) < 3:
         print("Görsel yetersiz")
         return
-
     print("4. Video...")
     create_video(script, "ses.mp3", images, topic, word_timings)
 
