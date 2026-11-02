@@ -36,72 +36,59 @@ TOPICS = [
 FALLBACKS = {
     "bmw": """
 BMW 200 bin kilometre sonra bozulur mu sanıyorsun?
-Sana büyük bir sır vereyim: Düzenli bakımlı BMW'ler 400 bin kilometreyi rahat görüyor.
-Asıl sorun geç yağ değişimi ve soğuk motora basılan gaz.
-Bakımı yapılan araçta zincir sorunu bile geç çıkar.
-Bu iddia tamamen yalan.
+Sana büyük bir sır vereyim: Bakımlı bir BMW 400 bin kilometreyi rahat görüyor.
+Asıl bitiren şey soğuk motora basılan gaz ve geç yağ değişimi.
+Zincir gergisi ihmal edilirse sorun çıkıyor, motor kendiliğinden ölmez.
 Bunu bilmeyen birine gönder, o da gerçeği öğrensin.
 """,
     "kisin": """
 Kışın arabayı dakikalarca boşta ısıtmazsan motorun bozulacağını mı sanıyorsun?
 Sana büyük bir sır vereyim: Bu kural tam otuz yıl önce bitti.
-Eski model arabalarda evet, beklemek gerekiyordu.
-Ama şimdiki arabalar öyle değil.
-Arabayı sabah çalıştırıp kapının önünde beklersen motora iyilik değil kötülük yapıyorsun.
-Motor durduğu yerde çok geç ısınır, boş yere benzin yakar.
-Doğrusu çok basit.
-Arabayı çalıştır, kemerini tak, aynaları kontrol et.
-Yirmi otuz saniye bekle ve hemen yola çık.
-Sadece araba ısınana kadar gaza sonuna kadar basma.
-Motor hareket ettikçe daha hızlı ve sağlıklı ısınır.
+Eski karbüratörlü arabalarda evet, beklemek gerekiyordu.
+Şimdiki enjeksiyonlu motorlar hareket ettikçe daha hızlı ısınır.
+Kapının önünde 5 dakika çalıştırmak motora iyilik değil, gereksiz aşınma.
+Yirmi otuz saniye yeter, sonra yola çık, sadece ilk kilometrelerde gaza yüklenme.
 Bu videoyu hemen babana gönder de o da gerçeği öğrensin.
 """,
     "turbo": """
 Turbo motorlar daha çabuk bozulur mu sanıyorsun?
-Sana büyük bir sır vereyim: Yağ soğutması düzgün yapılırsa turbo uzun ömürlü oluyor.
-Motoru stop etmeden önce bir dakika rölantide beklemek önemli.
-Ucuz yağ ve ihmal asıl suçlu.
-Bu iddia tamamen yalan.
+Sana büyük bir sır vereyim: Turbo'yu bitiren şey motor değil, stop sonrası hemen kapatmak.
+Yağ hâlâ sıcarken pompa durursa turbo yatakları kuru kalır.
+Stop etmeden önce 30-60 saniye rölanti, ömrü ciddi uzatır.
 Bunu bilmeyen birine gönder, o da gerçeği öğrensin.
 """,
     "dizel": """
-Dizel motorlar benzinliye göre daha dayanıklı mı sanıyorsun?
-Sana büyük bir sır vereyim: Eski dizeller gerçekten uzun yaşardı.
-Yeni dizellerde ekstra sistemler var, bakım ister.
-Bakım yapılmazsa masrafı benzinliden fazla çıkabiliyor.
-Dayanıklılık aracın kullanımına bağlı.
+Dizel motorlar benzinliye göre her zaman daha dayanıklı mı sanıyorsun?
+Sana büyük bir sır vereyim: Eski dizeller evet, yenilerde durum değişti.
+Partikül filtresi ve AdBlue sistemi bakımsız kalırsa masraf benzinliyi geçer.
+Kısa mesafe kullanan dizelde filtre tıkanması çok sık görülüyor.
 Bunu bilmeyen birine gönder, o da gerçeği öğrensin.
 """,
     "elektrikli": """
 Elektrikli arabaların bataryası 5 yılda biter mi sanıyorsun?
 Sana büyük bir sır vereyim: Üreticiler genelde 8 yıl veya 160 bin kilometre garanti veriyor.
-Gerçek hayatta çoğu batarya 10-15 yıl dayanıyor.
-Sık hızlı şarj ömrü biraz kısaltabiliyor.
-5 yılda biter demek abartı. Bu iddia tamamen yalan.
+Gerçek kullanımda çoğu batarya 10-15 yılı görüyor.
+Asıl ömrü kısaltan şey sürekli yüzde yüze kadar hızlı şarj.
 Elektrikli araba düşünen birine gönder, o da bilsin.
 """,
     "otomatik": """
 Otomatik vitesli arabalar daha çabuk bozulur mu sanıyorsun?
-Sana büyük bir sır vereyim: Eski otomatikler bakım isterdi, yeniler daha dayanıklı.
-Yağ değişimi yapılmazsa sorun çıkar.
-Doğru kullanımda otomatik vites uzun yaşar.
-Bu iddia tamamen yalan.
+Sana büyük bir sır vereyim: Yeni otomatik kutular doğru yağla 300 bin kilometreyi geçebiliyor.
+Asıl sorun ömür boyu yağ yalanı. 60-80 binde yağ değişmezse kutu yoruluyor.
 Bunu bilmeyen birine gönder, o da gerçeği öğrensin.
 """,
     "oktan": """
 Yüksek oktanlı benzin motoru temizler mi sanıyorsun?
-Sana büyük bir sır vereyim: Oktan sayısı vuruntuyu önler, motoru temizlemez.
-Motorun istediği oktanın üstüne çıkmak güç artırmaz.
-Temizlik için özel katkı gerekir, pahalı benzin değil.
-Bu iddia tamamen yalan.
+Sana büyük bir sır vereyim: Oktan sadece vuruntuyu önler, temizlik yapmaz.
+Motorun istediği oktanın üstüne çıkmak güç de artırmaz.
+Temizlik için ayrı katkı gerekir, pahalı pompa benzininden değil.
 Bunu bilmeyen birine gönder, o da gerçeği öğrensin.
 """,
     "yeni": """
-Yeni araba almak eski arabadan daha kârlı mı sanıyorsun?
-Sana büyük bir sır vereyim: İlk 3 yılda yeni araba değer kaybı yüksektir.
-Bakımlı 2-3 yaşındaki araç çoğu zaman daha mantıklı.
-Sigorta ve vergi de yeni arabada daha pahalı olabilir.
-Her zaman yeni almak kârlı değil.
+Yeni araba almak her zaman daha kârlı mı sanıyorsun?
+Sana büyük bir sır vereyim: İlk 3 yılda yeni araba değerinin büyük kısmını kaybeder.
+Bakımlı 2-3 yaşındaki araç çoğu zaman cebine daha az zarar eder.
+Sigorta ve vergi de yeni modelde genelde daha yüksek çıkar.
 Yeni araba almayı düşünen birine hemen gönder, o da bilsin.
 """
 }
@@ -147,18 +134,17 @@ def generate_script(topic):
 Sen Türk YouTube Shorts için samimi bir araba kanalı sunucususun.
 Konu: {topic}
 
-ZORUNLU TARZ:
-1. İlk cümle: İzleyiciye "sanıyorsun?" diye biten güçlü bir soru.
-2. İkinci cümle: "Sana büyük bir sır vereyim:" veya "Sana bir sır vereyim:" ile başlasın.
-3. Kısa cümleler. Konuşur gibi yaz. Teknik kelime yok.
-4. "km" yazma, "kilometre" yaz.
-5. Son cümle mutlaka konuya uygun bir gönder çağrısı olsun.
-   Örnekler:
-   - Kış / ısıtma konusuysa: "Bu videoyu hemen babana gönder de o da gerçeği öğrensin."
-   - Yeni araba konusuysa: "Yeni araba almayı düşünen birine hemen gönder, o da bilsin."
-   - BMW / turbo / dizel gibiyse: "Bunu bilmeyen birine gönder, o da gerçeği öğrensin."
-   Konuya uymayan genel "babana gönder" deme.
-6. 50-55 saniye. Sadece konuşma metni. Türkçe.
+ZORUNLU KURALLAR:
+1. İlk cümle: "sanıyorsun?" ile biten güçlü soru.
+2. İkinci cümle: "Sana büyük bir sır vereyim:" ile başlasın.
+3. Herkesin bildiği genel şeyler YASAK.
+   Yasak örnekler: "kaliteli yağ koy", "düzenli bakım yap", "iyi bakarsan uzun ömürlü olur".
+4. Somut, şaşırtıcı veya az bilinen bilgi ver.
+   Örnek tarz: "Bu kural 30 yıl önce bitti", "motor durduğu yerde daha çok aşınır", "garanti 8 yıl / 160 bin km".
+5. "Bu iddia tamamen yalan" deme zorunlu değil. Sadece gerçekten yalan bir iddiaysa söyle.
+6. Kısa cümleler. Konuşur gibi. Teknik kelime yok. "kilometre" yaz, "km" yazma.
+7. Son cümle konuya uygun gönder çağrısı olsun.
+8. 50-55 saniye. Sadece konuşma metni. Türkçe.
 """)
         text = response.text.strip()
         if text and len(text) > 40:
@@ -170,7 +156,6 @@ ZORUNLU TARZ:
     return clean_for_speech(pick_fallback(topic))
 
 async def text_to_speech(text, output_file):
-    # Soru işaretlerini koru (tonlama için). Sadece normal noktaları yumuşat.
     clean = text.replace(". ", ", ")
     communicate = edge_tts.Communicate(clean, VOICE, rate="+10%", pitch="-6Hz")
     word_timings = []
