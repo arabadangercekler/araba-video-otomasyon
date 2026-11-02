@@ -170,14 +170,13 @@ ZORUNLU TARZ:
     return clean_for_speech(pick_fallback(topic))
 
 async def text_to_speech(text, output_file):
-    # Cümle arası beklemeyi kısalt + daha akıcı ton
     clean = (
         text.replace(". ", ", ")
             .replace("! ", ", ")
-            .replace("? ", "? ")
             .replace(":", ",")
     )
-    communicate = edge_tts.Communicate(clean, VOICE, rate="+15%", pitch="+0Hz")
+    # Daha dolgun ton, ince robotik sesi azaltır
+    communicate = edge_tts.Communicate(clean, VOICE, rate="+12%", pitch="-8Hz")
     word_timings = []
     with open(output_file, "wb") as f:
         async for chunk in communicate.stream():
@@ -198,23 +197,23 @@ def download_images(topic, count=16):
 
     # Konuya özel, net aramalar (alakalı gelsin diye)
     if "elektrikli" in t or "batarya" in t:
-        queries = ["electric car", "tesla car exterior", "ev charging car"]
+        queries = ["electric car exterior", "white electric car", "ev car side"]
     elif "dizel" in t:
-        queries = ["diesel car exterior", "car engine bay", "sedan car"]
+        queries = ["diesel car", "car engine closeup", "sedan car exterior"]
     elif "otomatik" in t:
-        queries = ["car gear shifter automatic", "car interior console", "automatic gear lever"]
+        queries = ["automatic gear shifter car", "car gear lever", "car dashboard interior"]
     elif "turbo" in t:
-        queries = ["car engine turbo", "engine bay car", "car motor close"]
+        queries = ["car turbo engine", "car engine bay", "engine close up car"]
     elif "bmw" in t:
-        queries = ["BMW sedan", "BMW car exterior", "BMW 3 series"]
+        queries = ["BMW sedan exterior", "BMW car front", "BMW 5 series"]
     elif "oktan" in t or "benzin" in t:
-        queries = ["gas station pump", "car fuel nozzle", "petrol station car"]
+        queries = ["car fuel pump", "gas station car", "petrol nozzle car"]
     elif "yeni araba" in t:
-        queries = ["new car showroom", "modern sedan car", "car dealership lot"]
+        queries = ["new car exterior", "modern sedan car", "car dealership"]
     elif "kışın" in t or "isıtmadan" in t:
-        queries = ["car in snow", "winter car outdoor", "snow covered car"]
+        queries = ["car covered snow", "car winter road", "sedan in snow"]
     else:
-        queries = ["sedan car exterior", "car side view", "modern car"]
+        queries = ["sedan car exterior", "modern car side", "automobile exterior"]
 
     # Sadece gerçekten bozan şeyler (insan, oyuncak, tren vb.)
     exclude = [
