@@ -99,21 +99,106 @@ Yeni araba almayı düşünen birine hemen gönder, o da bilsin.
 """
 }
 
-def pick_topic():
+def load_used_topics():
     used_file = "used_topics.txt"
-    used = []
     if os.path.exists(used_file):
         with open(used_file, "r", encoding="utf-8") as f:
-            used = [x.strip() for x in f.readlines() if x.strip()]
-    available = [t for t in TOPICS if t not in used]
-    if not available:
-        used = []
-        available = TOPICS.copy()
-    topic = random.choice(available)
-    used.append(topic)
-    with open(used_file, "w", encoding="utf-8") as f:
-        f.write("\n".join(used[-20:]))
+            return [x.strip() for x in f.readlines() if x.strip()]
+    return []
+
+def save_used_topic(topic):
+    used = load_used_topics()
+    if topic not in used:
+        used.append(topic)
+    used = used[-40:]
+    with open("used_topics.txt", "w", encoding="utf-8") as f:
+        f.write("\n".join(used))
+
+def generate_topic():
+    used = load_used_topics()
+    used_text = "\n".join(used[-15:]) if used else "Yok"
+
+    try:
+        response = model.generate_content(f"""
+Türkçe araba YouTube Shorts kanalı için YENİ bir konu üret.
+
+Kurallar:
+- Sadece araba ile ilgili olsun
+- İnsanların merak ettiği, az bilinen veya yanlış bilinen bir şey olsun
+- "Herkesin bildiği genel bilgiler" olmasın (kaliteli yağ, düzenli bakım gibi)
+- Daha önce kullanılan konuları KESİNLİKLE kullanma:
+{used_text}
+
+Örnek tarz:
+- Kışın arabayı ısıtmadan sürmek motoru bozar yalanı
+- Turbo motor stop sonrası hemen kapatılırsa ne olur
+- Otomatik vites yağının ömür boyu olduğu iddiası
+
+Sadece tek satır konu yaz. Başka hiçbir şey yazma.
+""")
+        topic = response.text.strip().split("\n")[0].strip()
+        if len(topic) > 15 and topic not in used:
+            print(f"Yeni konu üretildi: {topic}")
+            return topic
+    except Exception as e:
+        print(f"Konu üretim hatası: {e}")
+
+    backups = [
+        "Kışın arabayı ısıtmadan sürmek motoru bozar yalanı",
+        "Turbo motor stop sonrası hemen kapatılırsa ne olur",
+        "Otomatik vites yağının ömür boyu olduğu iddiası",
+        "Yüksek oktanlı benzin motoru temizler mi",
+        "Elektrikli araba bataryası 5 yılda biter mi",
+        "BMW 200 bin kilometre sonra bozulur mu",
+        "Dizel partikül filtresi neden tıkanır",
+        "Yeni araba almak her zaman daha kârlı mı",
+    ]
+    available = [b for b in backups if b not in used]
+    topic = random.choice(available) if available else random.choice(backups)
+    print(f"Yedek konu: {topic}")
     return topic
+
+def generate_script(topic):
+    if random.random() < 0.80:
+        print("Samimi yedek senaryo kullanılıyor")
+        return clean_for_speech(pick_fallback(topic))
+
+    try:
+        response = model.generate_content(f"""
+Sen Türk YouTube Shorts için samimi bir araba kanalı sunucususun.
+Konu: {topic}
+
+ÖRNEK TARZ (buna çok benzeyeceksin):
+"Kışın arabayı dakikalarca boşta ısıtmazsan motorun bozulacağını mı sanıyorsun?
+Sana büyük bir sır vereyim: Bu kural tam otuz yıl önce bitti.
+Eski model arabalarda evet, beklemek gerekiyordu.
+Ama şimdiki arabalar öyle değil.
+...
+Bu videoyu hemen babana gönder de o da gerçeği öğrensin."
+
+KURALLAR:
+1. İlk cümle "sanıyorsun?" ile bitsin.
+2. İkinci cümle "Sana büyük bir sır vereyim:" ile başlasın.
+3. Genel laf YASAK (kaliteli yağ, düzenli bakım, iyi bakarsan, uzun ömürlü).
+4. Somut, az bilinen ama herkesin anlayacağı bilgi ver.
+5. "kilometre" yaz, "kutu" deme.
+6. Son cümle gönder çağrısı olsun.
+7. En az 45 saniye sürecek uzunlukta yaz. Sadece konuşma metni.
+""")
+        text = response.text.strip()
+        if text and len(text) > 200:
+            bad = ["kaliteli yağ", "düzenli bakım", "iyi bakarsan", "uzun ömürlü",
+                   "bakım yaparsan", "özetle", "kısaca", "genel olarak", "herkes bilir"]
+            if any(b in text.lower() for b in bad):
+                print("Genel bilgi → yedek")
+                return clean_for_speech(pick_fallback(topic))
+            print("Gemini senaryosu kabul edildi")
+            return clean_for_speech(text)
+    except Exception as e:
+        print(f"Gemini hatası: {e}")
+
+    print("Yedek senaryo")
+    return clean_for_speech(pick_fallback(topic))
 
 def pick_fallback(topic):
     t = topic.lower()
@@ -170,18 +255,15 @@ KURALLAR:
     return clean_for_speech(pick_fallback(topic))
 
 async def text_to_speech(text, output_file):
-    # Noktaları virgüle çevir → cümle arası beklemeler kısalır
-    clean = text.replace(". ", ", ")
-    clean = clean.replace("? ", "? ")
-    clean = clean.replace("! ", "! ")
-    # Fazla boşlukları temizle
-    clean = " ".join(clean.split())
+    # Noktaları ve fazla boşlukları agresif temizle
+    clean = re.sub(r'\.\s+', ', ', text)
+    clean = re.sub(r'\s+', ' ', clean).strip()
 
     communicate = edge_tts.Communicate(
-        clean, 
-        VOICE, 
-        rate="+14%",      # Biraz daha hızlı
-        pitch="-4Hz",
+        clean,
+        VOICE,
+        rate="+16%",
+        pitch="-3Hz",
         volume="+25%"
     )
     word_timings = []
@@ -212,31 +294,6 @@ def is_valid_image(filepath):
     except Exception:
         return False
 
-def download_images(topic, count=16):
-    images = []
-    t = topic.lower()
-    prefer_tag = None
-    if "elektrikli" in t or "batarya" in t:
-        queries = ["electric car exterior", "electric sedan", "ev car"]
-    elif "dizel" in t:
-        queries = ["diesel car", "car engine bay", "sedan car"]
-    elif "otomatik" in t:
-        queries = ["automatic gear shifter car", "car gear lever", "car interior"]
-    elif "turbo" in t:
-        queries = ["car turbo engine", "car engine closeup", "engine bay"]
-    elif "bmw" in t:
-        queries = ["BMW sedan", "BMW 3 series", "BMW 5 series", "BMW car exterior"]
-        prefer_tag = "bmw"
-    elif "oktan" in t or "benzin" in t:
-        queries = ["car gas station", "fuel pump car", "petrol station car"]
-    elif "yeni araba" in t:
-        queries = ["new sedan car", "modern car exterior", "new car"]
-    elif "kışın" in t or "isıtmadan" in t:
-        queries = ["car in snow", "snow covered car", "car winter", "sedan snow"]
-    else:
-        queries = ["sedan car exterior", "modern car", "car side view"]
-
-    exclude = [
         "people", "person", "man", "woman", "portrait", "child", "kid", "baby",
         "face", "human", "crowd", "group", "boy", "girl", "worker", "driver",
         "building", "architecture", "house", "skyscraper", "cityscape", "street",
@@ -481,19 +538,22 @@ def create_video(script, audio_file, images, topic, word_timings, output="video.
     return output
 
 def main():
-    topic = pick_topic()
+    topic = generate_topic()
     print(f"Konu: {topic}")
+
     print("1. Senaryo...")
     script = generate_script(topic)
+
+    save_used_topic(topic)
+
     print("2. Ses...")
     word_timings = asyncio.run(text_to_speech(script, "ses.mp3"))
+
     print("3. Görsel...")
     images = download_images(topic, 16)
     if len(images) < 3:
         print("Görsel yetersiz")
         return
+
     print("4. Video...")
     create_video(script, "ses.mp3", images, topic, word_timings)
-
-if __name__ == "__main__":
-    main()
