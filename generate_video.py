@@ -79,8 +79,8 @@ Elektrikli araba düşünen birine gönder, o da bilsin.
 """,
     "otomatik": """
 Otomatik vitesli arabalar daha çabuk bozulur mu sanıyorsun?
-Sana büyük bir sır vereyim: Yeni otomatik kutular doğru yağla 300 bin kilometreyi geçebiliyor.
-Asıl sorun “ömür boyu yağ” yalanı. 60-80 binde yağ değişmezse kutu yoruluyor.
+Sana büyük bir sır vereyim: Yeni otomatik vitesler doğru yağla 300 bin kilometreyi geçebiliyor.
+Asıl sorun “ömür boyu yağ” yalanı. 60-80 bin kilometrede yağ değişmezse vites sistemi yoruluyor.
 Bunu bilmeyen birine gönder, o da gerçeği öğrensin.
 """,
     "oktan": """
