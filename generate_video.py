@@ -224,6 +224,43 @@ def is_valid_image(filepath):
     except Exception:
         return False
 
+def download_ambient(topic):
+    """Konuya göre hafif arka plan sesi indir. Olmazsa None döner."""
+    t = topic.lower()
+
+    # Ücretsiz, doğrudan çalışması muhtemel ses linkleri (Mixkit tarzı)
+    if "elektrikli" in t or "batarya" in t:
+        urls = [
+            "https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3",  # soft tech/hum
+        ]
+    elif "turbo" in t or "motor" in t or "marş" in t:
+        urls = [
+            "https://assets.mixkit.co/active_storage/sfx/2515/2515-preview.mp3",  # engine-ish
+        ]
+    elif "kışın" in t or "isıtmadan" in t or "kar" in t:
+        urls = [
+            "https://assets.mixkit.co/active_storage/sfx/1210/1210-preview.mp3",  # wind-ish
+        ]
+    else:
+        urls = [
+            "https://assets.mixkit.co/active_storage/sfx/2515/2515-preview.mp3",
+        ]
+
+    for url in urls:
+        try:
+            r = requests.get(url, timeout=10)
+            if r.status_code == 200 and len(r.content) > 3000:
+                with open("ambient.mp3", "wb") as f:
+                    f.write(r.content)
+                print("Arka plan sesi indirildi")
+                return "ambient.mp3"
+        except Exception as e:
+            print(f"Ambient indirme hatası: {e}")
+            continue
+
+    print("Arka plan sesi alınamadı, sessiz devam")
+    return None
+
 def download_images(topic, count=16):
     images = []
     t = topic.lower()
@@ -454,12 +491,33 @@ def create_video(script, audio_file, images, topic, word_timings, output="video.
     audio = audio.with_volume_scaled(1.6)
     duration = audio.duration
     print(f"Ses: {duration:.1f}s")
+
+    # Arka plan sesi (çok alçak)
+    ambient_path = download_ambient(topic)
+    if ambient_path and os.path.exists(ambient_path):
+        try:
+            ambient = AudioFileClip(ambient_path)
+            # Videodan uzunsa kes, kısaysa döngüye al
+            if ambient.duration < duration:
+                n_loops = int(duration / ambient.duration) + 1
+                ambient = concatenate_videoclips([ambient] * n_loops).with_duration(duration)
+            else:
+                ambient = ambient.subclipped(0, duration)
+            ambient = ambient.with_volume_scaled(0.12)  # çok alçak
+            from moviepy import CompositeAudioClip
+            audio = CompositeAudioClip([audio, ambient])
+            print("Arka plan sesi eklendi")
+        except Exception as e:
+            print(f"Ambient karıştırma hatası: {e}")
+
     valid_images = [img for img in images if is_valid_image(img)]
     if len(valid_images) < 3:
         print("Yeterli geçerli görsel yok!")
         return
+
     images = valid_images
     print(f"Kullanılacak görsel sayısı: {len(images)}")
+
     fade = 0.35
     n = max(12, min(len(images) * 2, int(duration / 1.8)))
     unique = list(dict.fromkeys(images))
@@ -468,6 +526,7 @@ def create_video(script, audio_file, images, topic, word_timings, output="video.
         images.append(random.choice(unique))
     random.shuffle(images)
     images = images[:n]
+
     clip_dur = duration / n + fade
     img_clips = []
     for i in range(n):
@@ -478,12 +537,15 @@ def create_video(script, audio_file, images, topic, word_timings, output="video.
         except Exception as e:
             print(f"Clip hatası ({images[i]}): {e}")
             continue
+
     if not img_clips:
         print("Hiç clip oluşturulamadı!")
         return
+
     video = concatenate_videoclips(img_clips, method="compose", padding=-fade)
     video = video.with_duration(duration).resized((W, H))
     video = video.with_audio(audio)
+
     layers = [video, create_hook(topic, 5.5)] + create_subtitles(script, duration, word_timings)
     final = CompositeVideoClip(layers, size=(W, H)).with_duration(duration)
     final.write_videofile(output, fps=24, codec="libx264", audio_codec="aac", logger=None)
