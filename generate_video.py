@@ -225,20 +225,21 @@ def is_valid_image(filepath):
         return False
 
 def download_music():
-    """Ücretsiz arka plan müziği indir. Olmazsa None döner."""
-    # Mixkit ücretsiz, telifsiz parçalar
-    urls = [
-        "https://assets.mixkit.co/music/preview/mixkit-tech-house-vibes-130.mp3",
-        "https://assets.mixkit.co/music/preview/mixkit-hip-hop-02-738.mp3",
-        "https://assets.mixkit.co/music/preview/mixkit-driving-ambition-32.mp3",
-        "https://assets.mixkit.co/music/preview/mixkit-serene-view-443.mp3",
-    ]
-    random.shuffle(urls)
+    # Önce repodaki dosyaya bak (en garantisi)
+    if os.path.exists("background.mp3"):
+        print("Repodaki müzik kullanılıyor")
+        return "background.mp3"
 
+    # Yoksa indirmeyi dene
+    urls = [
+        "https://cdn.pixabay.com/download/audio/2022/03/15/audio_145ef2c2c1.mp3",
+        "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0c6ff1eab.mp3",
+        "https://assets.mixkit.co/music/preview/mixkit-tech-house-vibes-130.mp3",
+    ]
     for url in urls:
         try:
-            r = requests.get(url, timeout=12)
-            if r.status_code == 200 and len(r.content) > 20000:
+            r = requests.get(url, timeout=15, headers={"User-Agent": "Mozilla/5.0"})
+            if r.status_code == 200 and len(r.content) > 30000:
                 with open("music.mp3", "wb") as f:
                     f.write(r.content)
                 print("Müzik indirildi")
@@ -247,7 +248,7 @@ def download_music():
             print(f"Müzik indirme hatası: {e}")
             continue
 
-    print("Müzik alınamadı, sessiz devam")
+    print("Müzik bulunamadı")
     return None
 
 def download_images(topic, count=16):
@@ -485,11 +486,13 @@ def create_video(script, audio_file, images, topic, word_timings, output="video.
     music_path = download_music()
     if music_path and os.path.exists(music_path):
         try:
-            music = AudioFileClip(music_path).with_volume_scaled(0.10)
+            music = AudioFileClip(music_path)
+            # Videodan kısa ise uzat
             if music.duration < duration:
-                music = music.with_duration(duration)
-            else:
-                music = music.subclipped(0, duration)
+                from moviepy import concatenate_audioclips
+                times = int(duration / music.duration) + 1
+                music = concatenate_audioclips([music] * times)
+            music = music.subclipped(0, duration).with_volume_scaled(0.14)
             from moviepy import CompositeAudioClip
             audio = CompositeAudioClip([audio, music])
             print("Arka plan müziği eklendi")
