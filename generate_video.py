@@ -26,50 +26,51 @@ FALLBACKS = {
     "bmw": """
 BMW 200 bin kilometre sonra bozulur mu sanıyorsun?
 Sana büyük bir sır vereyim: Bakımlı bir BMW 400 bin kilometreyi rahat görüyor.
-Asıl bitiren şey soğuk motora basılan gaz ve geç yağ değişimi.
-Zincir gergisi ihmal edilirse sorun çıkıyor, motor kendiliğinden ölmez.
+Asıl bitiren şey soğuk motora birden gaza basmak ve yağı geciktirmek.
+Zincir gergisi ihmal edilirse sorun çıkar, motor kendi kendine ölmez.
 Bunu bilmeyen birine gönder, o da gerçeği öğrensin.
 """,
     "kisin": """
 Kışın arabayı dakikalarca boşta ısıtmazsan motorun bozulacağını mı sanıyorsun?
 Sana büyük bir sır vereyim: Bu kural tam otuz yıl önce bitti.
-Eski model arabalarda evet, beklemek gerekiyordu.
+Eski model, dede arabalarında evet, beklemek gerekiyordu.
 Ama şimdiki arabalar öyle değil.
-Arabayı sabah çalıştırıp kapının önünde beklersen motora iyilik değil kötülük yapıyorsun.
-Motor durduğu yerde çok geç ısınır, boş yere benzin yakar ve parçaları daha çok aşınır.
-Peki doğrusu ne? Çok basit.
-Arabayı çalıştır, kemerini tak, aynaları kontrol et.
-Yirmi otuz saniye bekle ve hemen yola çık.
-Sadece araba ısınana kadar gaza sonuna kadar basma, sakin sür.
+Sabah çalıştırıp kapının önünde beklersen motora iyilik değil kötülük yapıyorsun.
+Motor durduğu yerde çok geç ısınır, boş yere benzin yer, parçalar daha çok aşınır.
+Doğrusu çok basit.
+Arabayı çalıştır, kemerini tak, aynaya bak.
+Yirmi otuz saniye bekle, sonra yola çık.
+Isınana kadar gaza sonuna kadar basma, sakin sür.
 Motor hareket ettikçe daha hızlı ve sağlıklı ısınır.
-O soğukta boş yere titreme devri bitti.
-Bu videoyu hemen babana gönder de o da gerçeği öğrensin.
+O soğukta boş yere titretme devri bitti.
+Bu videoyu hemen babana gönder de o da öğrensin.
 """,
     "turbo": """
 Turbo motorlar daha çabuk bozulur mu sanıyorsun?
 Sana büyük bir sır vereyim: Turbo’yu bitiren şey motor değil, stop sonrası hemen kapatmak.
 Yağ hâlâ sıcarken pompa durursa turbo yatakları kuru kalır.
-Stop etmeden önce 30-60 saniye rölanti yeter, ömrü ciddi uzatır.
+Stop etmeden önce otuz altmış saniye rölantide beklemen yeter.
 Bunu bilmeyen birine gönder, o da gerçeği öğrensin.
 """,
     "dizel": """
 Dizel motorlar benzinliye göre her zaman daha dayanıklı mı sanıyorsun?
-Sana büyük bir sır vereyim: Eski dizeller evet, yenilerde durum değişti.
-Partikül filtresi ve AdBlue sistemi bakımsız kalırsa masraf benzinliyi geçer.
+Sana büyük bir sır vereyim: Eski dizeller evet, yenilerde iş değişti.
+Partikül filtresi ve AdBlue bakımsız kalırsa masraf benzinliyi geçer.
 Kısa mesafe kullanan dizelde filtre tıkanması çok sık görülüyor.
-Bunu bilmeyen birine gönder, o da gerçeği öğrensin.
+Bunu bilmeyen birine gönder, o da bilsin.
 """,
     "elektrikli": """
 Elektrikli arabaların bataryası 5 yılda biter mi sanıyorsun?
 Sana büyük bir sır vereyim: Üreticiler genelde 8 yıl veya 160 bin kilometre garanti veriyor.
-Gerçek kullanımda çoğu batarya 10-15 yılı görüyor.
-Asıl ömrü kısaltan şey sürekli yüzde yüze kadar hızlı şarj.
-Elektrikli araba düşünen birine gönder, o da bilsin.
+Gerçek hayatta çoğu batarya 10-15 yılı görüyor.
+Asıl ömrü kısaltan şey her seferinde yüzde yüze kadar hızlı şarj.
+Elektrikli araba düşünen birine gönder, o da öğrensin.
 """,
     "otomatik": """
 Otomatik vitesli arabalar daha çabuk bozulur mu sanıyorsun?
 Sana büyük bir sır vereyim: Yeni otomatik vitesler doğru yağla 300 bin kilometreyi geçebiliyor.
-Asıl sorun “ömür boyu yağ” yalanı. 60-80 bin kilometrede yağ değişmezse vites sistemi yoruluyor.
+Asıl sorun “ömür boyu yağ” yalanı.
+60-80 bin kilometrede yağ değişmezse vites sistemi yoruluyor.
 Bunu bilmeyen birine gönder, o da gerçeği öğrensin.
 """,
     "oktan": """
@@ -77,15 +78,15 @@ Yüksek oktanlı benzin motoru temizler mi sanıyorsun?
 Sana büyük bir sır vereyim: Oktan sadece vuruntuyu önler, temizlik yapmaz.
 Motorun istediği oktanın üstüne çıkmak güç de artırmaz.
 Temizlik için ayrı katkı gerekir, pahalı pompa benzininden değil.
-Bunu bilmeyen birine gönder, o da gerçeği öğrensin.
+Bunu bilmeyen birine gönder, o da bilsin.
 """,
     "yeni": """
 Yeni araba almak her zaman daha kârlı mı sanıyorsun?
 Sana büyük bir sır vereyim: İlk üç yılda değerinin büyük kısmını kaybeder.
 Aynı modelin 2-3 yaşındaki bakımlı hali çoğu zaman çok daha mantıklı çıkar.
 Showroom kokusu için ödediğin fark, cebinden çıkan en pahalı alışkanlıklardan biri.
-Yeni araba almayı düşünen birine hemen gönder, o da bilsin.
-""",
+Yeni araba almayı düşünen birine hemen gönder, o da öğrensin.
+"""
 }
 
 def pick_fallback(topic):
@@ -212,7 +213,10 @@ Konu: {topic}
 ÖRNEK TARZ:
 "Kışın arabayı dakikalarca boşta ısıtmazsan motorun bozulacağını mı sanıyorsun?
 Sana büyük bir sır vereyim: Bu kural tam otuz yıl önce bitti.
-..."
+Eski model, dede arabalarında evet, beklemek gerekiyordu.
+Ama şimdiki arabalar öyle değil.
+...
+Bu videoyu hemen babana gönder de o da öğrensin."
 
 KESİN YASAKLAR:
 - vergi, sigorta, bakımlı olursa uzun ömürlü olur, kaliteli yağ, düzenli bakım
