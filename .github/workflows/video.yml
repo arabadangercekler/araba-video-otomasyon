@@ -8,6 +8,8 @@ on:
 jobs:
   uret:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Repo'yu indir
         uses: actions/checkout@v4
@@ -34,3 +36,17 @@ jobs:
         with:
           name: video
           path: video.mp4
+
+      - name: Kullanılan konuları kaydet
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          touch used_topics.txt
+          git add used_topics.txt
+          if git diff --staged --quiet; then
+            echo "Yeni konu yok, commit yok"
+          else
+            git commit -m "used_topics guncellendi"
+            git push
+          fi
