@@ -137,28 +137,42 @@ def save_used_topic(topic):
 
 def generate_topic():
     used = load_used_topics()
-    used_text = "\n".join(used[-15:]) if used else "Yok"
+    used_lower = [u.lower() for u in used]
+    used_text = "\n".join(used[-30:]) if used else "Yok"
+
     try:
         response = model.generate_content(f"""
 Türkçe araba YouTube Shorts kanalı için YENİ bir konu üret.
+
 Kurallar:
 - Sadece araba ile ilgili olsun
-- İnsanların merak ettiği, az bilinen veya yanlış bilinen bir şey olsun
-- "Herkesin bildiği genel bilgiler" olmasın
-- Daha önce kullanılan konuları KESİNLİKLE kullanma:
+- Az bilinen veya yanlış bilinen bir şey olsun
+- Genel bilgiler olmasın
+- Aşağıdaki daha önce kullanılan konuları ve benzerlerini KESİNLİKLE kullanma:
 {used_text}
+
 Örnek tarz:
 - Kışın arabayı ısıtmadan sürmek motoru bozar yalanı
 - Turbo motor stop sonrası hemen kapatılırsa ne olur
 - Otomatik vites yağının ömür boyu olduğu iddiası
+
 Sadece tek satır konu yaz. Başka hiçbir şey yazma.
 """)
         topic = response.text.strip().split("\n")[0].strip()
-        if len(topic) > 15 and topic not in used:
-            print(f"Yeni konu üretildi: {topic}")
-            return topic
+        # Daha önce kullanıldıysa veya çok kısaysa reddet
+        if len(topic) > 15 and topic.lower() not in used_lower:
+            # Benzer konu kontrolü (basit)
+            similar = False
+            for u in used_lower:
+                if topic.lower() in u or u in topic.lower():
+                    similar = True
+                    break
+            if not similar:
+                print(f"Yeni konu üretildi: {topic}")
+                return topic
     except Exception as e:
         print(f"Konu üretim hatası: {e}")
+
     backups = [
         "Kışın arabayı ısıtmadan sürmek motoru bozar yalanı",
         "Turbo motor stop sonrası hemen kapatılırsa ne olur",
@@ -168,10 +182,20 @@ Sadece tek satır konu yaz. Başka hiçbir şey yazma.
         "BMW 200 bin kilometre sonra bozulur mu",
         "Dizel partikül filtresi neden tıkanır",
         "Yeni araba almak her zaman daha kârlı mı",
+        "Klima kullanmak yakıtı çok mu artırır",
+        "Motor yağı ne sıklıkla değişmeli",
+        "Stop etmeden önce beklemek gerekir mi",
+        "Kışın lastik basıncını düşürmek doğru mu",
     ]
-    available = [b for b in backups if b not in used]
-    topic = random.choice(available) if available else random.choice(backups)
-    print(f"Yedek konu: {topic}")
+    available = [b for b in backups if b.lower() not in used_lower]
+    if available:
+        topic = random.choice(available)
+        print(f"Yedek konu: {topic}")
+        return topic
+
+    # Hepsi kullanıldıysa yine de yeni bir şey üretmeye zorla
+    topic = f"Araba mitleri özel konu {len(used)+1}"
+    print(f"Zorunlu yeni konu: {topic}")
     return topic
 
 def generate_script(topic):
