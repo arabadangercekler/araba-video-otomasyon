@@ -81,25 +81,38 @@ Bunu bilmeyen birine gönder, o da gerçeği öğrensin.
 """,
     "yeni": """
 Yeni araba almak her zaman daha kârlı mı sanıyorsun?
-Sana büyük bir sır vereyim: İlk 3 yılda yeni araba değerinin büyük kısmını kaybeder.
-Bakımlı 2-3 yaşındaki araç çoğu zaman cebine daha az zarar eder.
-Sigorta ve vergi de yeni modelde genelde daha yüksek çıkar.
+Sana büyük bir sır vereyim: İlk üç yılda değerinin büyük kısmını kaybeder.
+Aynı modelin 2-3 yaşındaki bakımlı hali çoğu zaman çok daha mantıklı çıkar.
+Showroom kokusu için ödediğin fark, cebinden çıkan en pahalı alışkanlıklardan biri.
 Yeni araba almayı düşünen birine hemen gönder, o da bilsin.
-"""
+""",
 }
 
 def pick_fallback(topic):
     t = topic.lower()
-    if "bmw" in t: return FALLBACKS["bmw"].strip()
-    if "turbo" in t: return FALLBACKS["turbo"].strip()
-    if "dizel" in t: return FALLBACKS["dizel"].strip()
-    if "elektrikli" in t or "batarya" in t: return FALLBACKS["elektrikli"].strip()
-    if "otomatik" in t: return FALLBACKS["otomatik"].strip()
-    if "oktan" in t or "benzin" in t: return FALLBACKS["oktan"].strip()
-    if "kışın" in t or "isıtmadan" in t: return FALLBACKS["kisin"].strip()
-    if "yeni araba" in t: return FALLBACKS["yeni"].strip()
-    return FALLBACKS["oktan"].strip()
-
+    if "bmw" in t:
+        return FALLBACKS["bmw"].strip()
+    if "turbo" in t:
+        return FALLBACKS["turbo"].strip()
+    if "dizel" in t or "partikül" in t or "adblue" in t:
+        return FALLBACKS["dizel"].strip()
+    if "elektrikli" in t or "batarya" in t:
+        return FALLBACKS["elektrikli"].strip()
+    if "otomatik" in t or "vites" in t or "şanzıman" in t:
+        return FALLBACKS["otomatik"].strip()
+    if "oktan" in t or "benzin" in t:
+        return FALLBACKS["oktan"].strip()
+    if "kışın" in t or "isıtmadan" in t or "ısıt" in t:
+        return FALLBACKS["kisin"].strip()
+    if "yeni araba" in t or "sıfır araba" in t or "yeni araç" in t:
+        return FALLBACKS["yeni"].strip()
+    # Eşleşme yoksa rastgele iyi bir yedek (genel laf olmasın)
+    return random.choice([
+        FALLBACKS["kisin"],
+        FALLBACKS["turbo"],
+        FALLBACKS["otomatik"],
+        FALLBACKS["bmw"],
+    ]).strip()
 def clean_for_speech(text):
     text = re.sub(r'\bkm\b', 'kilometre', text, flags=re.IGNORECASE)
     text = re.sub(r'\bKM\b', 'kilometre', text)
@@ -162,34 +175,50 @@ Sadece tek satır konu yaz. Başka hiçbir şey yazma.
     return topic
 
 def generate_script(topic):
-    if random.random() < 0.80:
+    # %95 yedek → genel laf riski çok düşer
+    if random.random() < 0.95:
         print("Samimi yedek senaryo kullanılıyor")
         return clean_for_speech(pick_fallback(topic))
+
     try:
         response = model.generate_content(f"""
 Sen Türk YouTube Shorts için samimi bir araba kanalı sunucususun.
 Konu: {topic}
+
 ÖRNEK TARZ:
 "Kışın arabayı dakikalarca boşta ısıtmazsan motorun bozulacağını mı sanıyorsun?
 Sana büyük bir sır vereyim: Bu kural tam otuz yıl önce bitti.
 ..."
-KURALLAR:
-1. İlk cümle "sanıyorsun?" ile bitsin.
-2. İkinci cümle "Sana büyük bir sır vereyim:" ile başlasın.
-3. Genel laf YASAK.
-4. Somut, az bilinen ama herkesin anlayacağı bilgi ver.
-5. "kilometre" yaz.
-6. Son cümle gönder çağrısı olsun.
-7. En az 45 saniye. Sadece konuşma metni.
+
+KESİN YASAKLAR:
+- vergi, sigorta, bakımlı olursa uzun ömürlü olur, kaliteli yağ, düzenli bakım
+- herkesin bildiği genel tavsiyeler
+- "özetle", "kısaca", "genel olarak"
+
+ZORUNLU:
+1. İlk cümle "sanıyorsun?" ile bitsin
+2. İkinci cümle "Sana büyük bir sır vereyim:" ile başlasın
+3. Somut, az bilinen ama herkesin anlayacağı bilgi
+4. "kilometre" yaz
+5. Son cümle gönder çağrısı
+6. En az 45 saniye. Sadece konuşma metni.
 """)
         text = response.text.strip()
         if text and len(text) > 200:
-            bad = ["kaliteli yağ", "düzenli bakım", "iyi bakarsan", "uzun ömürlü", "bakım yaparsan", "özetle", "kısaca", "genel olarak"]
+            bad = [
+                "kaliteli yağ", "düzenli bakım", "iyi bakarsan", "uzun ömürlü",
+                "bakım yaparsan", "özetle", "kısaca", "genel olarak", "herkes bilir",
+                "vergi", "sigorta", "bakım önemli", "düzenli kontrol"
+            ]
             if any(b in text.lower() for b in bad):
+                print("Genel bilgi tespit edildi → yedek")
                 return clean_for_speech(pick_fallback(topic))
+            print("Gemini senaryosu kabul edildi")
             return clean_for_speech(text)
     except Exception as e:
         print(f"Gemini hatası: {e}")
+
+    print("Yedek senaryo")
     return clean_for_speech(pick_fallback(topic))
 
 async def text_to_speech(text, output_file):
