@@ -334,7 +334,16 @@ def download_images(topic, count=16):
     t = topic.lower()
     prefer_tag = None
     if "elektrikli" in t or "batarya" in t:
-        queries = ["electric car exterior", "electric sedan", "ev car"]
+        queries = [
+            "electric car exterior",
+            "electric vehicle charging",
+            "ev charging station car",
+            "electric sedan side",
+            "tesla car exterior",
+            "electric car plug",
+            "modern electric car"
+        ]
+        prefer_tag = "electric"
     elif "dizel" in t:
         queries = ["diesel car", "car engine bay", "sedan car"]
     elif "otomatik" in t:
@@ -380,8 +389,15 @@ def download_images(topic, count=16):
                 tags = (hit.get("tags") or "").lower()
                 if any(x in tags for x in exclude):
                     continue
-                if not any(x in tags for x in ["car", "auto", "vehicle", "sedan", "bmw", "engine", "motor", "wheel"]):
-                    continue
+                # Elektrikli konuda motor/engine fotoğrafı alma
+                if prefer_tag == "electric":
+                    if not any(x in tags for x in ["car", "auto", "vehicle", "sedan", "electric", "ev", "charging", "tesla"]):
+                        continue
+                    if any(x in tags for x in ["engine bay", "combustion", "v8", "diesel engine"]):
+                        continue
+                else:
+                    if not any(x in tags for x in ["car", "auto", "vehicle", "sedan", "bmw", "engine", "motor", "wheel"]):
+                        continue
                 img_url = hit.get("largeImageURL") or hit.get("webformatURL")
                 if not img_url:
                     continue
