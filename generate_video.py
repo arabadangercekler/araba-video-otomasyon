@@ -224,42 +224,49 @@ def is_valid_image(filepath):
     except Exception:
         return False
 
-def download_music():
-    """Her seferinde farklı ücretsiz müzik indirmeye çalışır. Yükleme gerekmez."""
-    urls = [
-        # Pixabay ücretsiz müzikler
-        "https://cdn.pixabay.com/download/audio/2022/03/15/audio_145ef2c2c1.mp3?filename=lofi-study-112191.mp3",
-        "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0c6ff1eab.mp3?filename=relaxed-vlog-111615.mp3",
-        "https://cdn.pixabay.com/download/audio/2021/11/01/audio_b8b6f1a2c3.mp3?filename=chill-abstract-intention-12099.mp3",
-        "https://cdn.pixabay.com/download/audio/2022/05/16/audio_4a0a3a3e0a.mp3?filename=inspiring-cinematic-ambient-116199.mp3",
-        "https://cdn.pixabay.com/download/audio/2022/08/02/audio_3b3f8e8e8e.mp3?filename=soft-background-music-116201.mp3",
-        # Mixkit
-        "https://assets.mixkit.co/music/preview/mixkit-tech-house-vibes-130.mp3",
-        "https://assets.mixkit.co/music/preview/mixkit-hip-hop-02-738.mp3",
-        "https://assets.mixkit.co/music/preview/mixkit-driving-ambition-32.mp3",
-        "https://assets.mixkit.co/music/preview/mixkit-serene-view-443.mp3",
-        "https://assets.mixkit.co/music/preview/mixkit-deep-urban-623.mp3",
-    ]
-    random.shuffle(urls)
+def create_background_music(duration, filename="music.mp3"):
+    """Basit, telifsiz arka plan müziği üretir (indirme yok)."""
+    try:
+        import wave
+        import struct
+        import math
 
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    }
+        sample_rate = 22050
+        n_samples = int(duration * sample_rate)
 
-    for url in urls:
-        try:
-            r = requests.get(url, timeout=15, headers=headers, allow_redirects=True)
-            if r.status_code == 200 and len(r.content) > 30000:
-                with open("music.mp3", "wb") as f:
-                    f.write(r.content)
-                print(f"Müzik indirildi ({len(r.content)} byte)")
-                return "music.mp3"
-        except Exception as e:
-            print(f"Müzik denemesi başarısız: {e}")
-            continue
+        # Her seferinde biraz farklı notalar
+        base_freqs = random.choice([
+            [130.81, 164.81, 196.00, 246.94],   # C minör soft
+            [146.83, 174.61, 220.00, 261.63],   # D soft
+            [110.00, 146.83, 164.81, 220.00],   # A soft
+        ])
 
-    print("Hiç müzik indirilemedi, sessiz devam")
-    return None
+        samples = []
+        for i in range(n_samples):
+            t = i / sample_rate
+            # Yumuşak pad sesi
+            val = 0.0
+            for f in base_freqs:
+                val += 0.08 * math.sin(2 * math.pi * f * t)
+                val += 0.03 * math.sin(2 * math.pi * f * 1.5 * t)
+            # Çok hafif fade in/out
+            fade = min(1.0, t * 2, max(0.0, (duration - t) * 2))
+            val *= fade
+            # Klip
+            val = max(-0.4, min(0.4, val))
+            samples.append(int(val * 32767))
+
+        with wave.open(filename, "w") as w:
+            w.setnchannels(1)
+            w.setsampwidth(2)
+            w.setframerate(sample_rate)
+            w.writeframes(struct.pack("<" + "h" * len(samples), *samples))
+
+        print("Arka plan müziği üretildi")
+        return filename
+    except Exception as e:
+        print(f"Müzik üretim hatası: {e}")
+        return None
 
 def download_images(topic, count=16):
     images = []
@@ -492,16 +499,11 @@ def create_video(script, audio_file, images, topic, word_timings, output="video.
     duration = audio.duration
     print(f"Ses: {duration:.1f}s")
     
-            # Arka plan müziği (çok alçak)
-    music_path = download_music()
+            # Arka plan müziği (kod içinde üretiliyor, indirme yok)
+    music_path = create_background_music(duration)
     if music_path and os.path.exists(music_path):
         try:
-            music = AudioFileClip(music_path)
-            if music.duration < duration:
-                from moviepy import concatenate_audioclips
-                times = int(duration / music.duration) + 1
-                music = concatenate_audioclips([music] * times)
-            music = music.subclipped(0, duration).with_volume_scaled(0.14)
+            music = AudioFileClip(music_path).with_volume_scaled(0.16)
             from moviepy import CompositeAudioClip
             audio = CompositeAudioClip([audio, music])
             print("Arka plan müziği eklendi")
