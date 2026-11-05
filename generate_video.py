@@ -27,7 +27,8 @@ FALLBACKS = {
 BMW 200 bin kilometre sonra bozulur mu sanıyorsun?
 Sana büyük bir sır vereyim: Bakımlı bir BMW 400 bin kilometreyi rahat görüyor.
 Asıl bitiren şey soğuk motora birden gaza basmak ve yağı geciktirmek.
-Zincir gergisi ihmal edilirse sorun çıkar, motor kendi kendine ölmez.
+Bunlar zincir gergisini ve motoru yorar, sonra masraf kapıya dayanır.
+Soğukken sakin sür, yağı zamanında değiştir.
 Bunu bilmeyen birine gönder, o da gerçeği öğrensin.
 """,
     "kisin": """
@@ -35,29 +36,27 @@ Kışın arabayı dakikalarca boşta ısıtmazsan motorun bozulacağını mı sa
 Sana büyük bir sır vereyim: Bu kural tam otuz yıl önce bitti.
 Eski model, dede arabalarında evet, beklemek gerekiyordu.
 Ama şimdiki arabalar öyle değil.
-Sabah çalıştırıp kapının önünde beklersen motora iyilik değil kötülük yapıyorsun.
-Motor durduğu yerde çok geç ısınır, boş yere benzin yer, parçalar daha çok aşınır.
-Doğrusu çok basit.
-Arabayı çalıştır, kemerini tak, aynaya bak.
-Yirmi otuz saniye bekle, sonra yola çık.
+Sabah çalıştırıp kapının önünde beklersen motor çok geç ısınır.
+Boş yere benzin yer, parçalar daha çok aşınır.
+Doğrusu basit: çalıştır, kemerini tak, yirmi otuz saniye bekle, yola çık.
 Isınana kadar gaza sonuna kadar basma, sakin sür.
-Motor hareket ettikçe daha hızlı ve sağlıklı ısınır.
-O soğukta boş yere titretme devri bitti.
+Motor hareket ettikçe daha sağlıklı ısınır.
 Bu videoyu hemen babana gönder de o da öğrensin.
 """,
     "turbo": """
 Turbo motorlar daha çabuk bozulur mu sanıyorsun?
 Sana büyük bir sır vereyim: Turbo’yu bitiren şey motor değil, stop sonrası hemen kapatmak.
 Yağ hâlâ sıcarken pompa durursa turbo yatakları kuru kalır.
-Kuru yatak sürtünür, turbo yavaş yavaş bozulmaya başlar, sonra da büyük masraf çıkar.
+Kuru yatak sürtünür, turbo yavaş yavaş bozulmaya başlar, sonra büyük masraf çıkar.
 Stop etmeden önce otuz altmış saniye rölantide beklemen yeter, yağ biraz soğusun.
 Bunu bilmeyen birine gönder, o da gerçeği öğrensin.
 """,
     "dizel": """
 Dizel motorlar benzinliye göre her zaman daha dayanıklı mı sanıyorsun?
 Sana büyük bir sır vereyim: Eski dizeller evet, yenilerde iş değişti.
-Partikül filtresi ve AdBlue bakımsız kalırsa masraf benzinliyi geçer.
-Kısa mesafe kullanan dizelde filtre tıkanması çok sık görülüyor.
+Partikül filtresi ve AdBlue bakımsız kalırsa sistem tıkanır.
+Tıkanınca güç düşer, uyarı yanar, masraf benzinliyi geçer.
+Kısa mesafe kullanıyorsan arada bir uzun yol yaptır, bakımları aksatma.
 Bunu bilmeyen birine gönder, o da bilsin.
 """,
     "elektrikli": """
@@ -65,27 +64,31 @@ Elektrikli arabaların bataryası 5 yılda biter mi sanıyorsun?
 Sana büyük bir sır vereyim: Üreticiler genelde 8 yıl veya 160 bin kilometre garanti veriyor.
 Gerçek hayatta çoğu batarya 10-15 yılı görüyor.
 Asıl ömrü kısaltan şey her seferinde yüzde yüze kadar hızlı şarj.
+Bu, bataryayı yorar, kapasite daha çabuk düşer.
+Mümkünse yüzde 20-80 arası kullan, hızlı şarjı abartma.
 Elektrikli araba düşünen birine gönder, o da öğrensin.
 """,
     "otomatik": """
 Otomatik vitesli arabalar daha çabuk bozulur mu sanıyorsun?
 Sana büyük bir sır vereyim: Yeni otomatik vitesler doğru yağla 300 bin kilometreyi geçebiliyor.
 Asıl sorun “ömür boyu yağ” yalanı.
-60-80 bin kilometrede yağ değişmezse vites sistemi yoruluyor.
+60-80 bin kilometrede yağ değişmezse vites sistemi yorulur, vitesler sertleşir, sonra bozulur.
+Yağını zamanında değiştir, ömrü ciddi uzar.
 Bunu bilmeyen birine gönder, o da gerçeği öğrensin.
 """,
     "oktan": """
 Yüksek oktanlı benzin motoru temizler mi sanıyorsun?
 Sana büyük bir sır vereyim: Oktan sadece vuruntuyu önler, temizlik yapmaz.
 Motorun istediği oktanın üstüne çıkmak güç de artırmaz.
+Sadece fazla para ödersin, motor aynı kalır.
 Temizlik için ayrı katkı gerekir, pahalı pompa benzininden değil.
 Bunu bilmeyen birine gönder, o da bilsin.
 """,
     "yeni": """
 Yeni araba almak her zaman daha kârlı mı sanıyorsun?
 Sana büyük bir sır vereyim: İlk üç yılda değerinin büyük kısmını kaybeder.
+Showroom kokusu için ödediğin fark cebinden çıkar, geri gelmez.
 Aynı modelin 2-3 yaşındaki bakımlı hali çoğu zaman çok daha mantıklı çıkar.
-Showroom kokusu için ödediğin fark, cebinden çıkan en pahalı alışkanlıklardan biri.
 Yeni araba almayı düşünen birine hemen gönder, o da öğrensin.
 """
 }
