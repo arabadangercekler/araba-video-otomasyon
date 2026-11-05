@@ -225,30 +225,40 @@ def is_valid_image(filepath):
         return False
 
 def download_music():
-    # Önce repodaki dosyaya bak (en garantisi)
-    if os.path.exists("background.mp3"):
-        print("Repodaki müzik kullanılıyor")
-        return "background.mp3"
-
-    # Yoksa indirmeyi dene
+    """Her seferinde farklı ücretsiz müzik indirmeye çalışır. Yükleme gerekmez."""
     urls = [
-        "https://cdn.pixabay.com/download/audio/2022/03/15/audio_145ef2c2c1.mp3",
-        "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0c6ff1eab.mp3",
+        # Pixabay ücretsiz müzikler
+        "https://cdn.pixabay.com/download/audio/2022/03/15/audio_145ef2c2c1.mp3?filename=lofi-study-112191.mp3",
+        "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0c6ff1eab.mp3?filename=relaxed-vlog-111615.mp3",
+        "https://cdn.pixabay.com/download/audio/2021/11/01/audio_b8b6f1a2c3.mp3?filename=chill-abstract-intention-12099.mp3",
+        "https://cdn.pixabay.com/download/audio/2022/05/16/audio_4a0a3a3e0a.mp3?filename=inspiring-cinematic-ambient-116199.mp3",
+        "https://cdn.pixabay.com/download/audio/2022/08/02/audio_3b3f8e8e8e.mp3?filename=soft-background-music-116201.mp3",
+        # Mixkit
         "https://assets.mixkit.co/music/preview/mixkit-tech-house-vibes-130.mp3",
+        "https://assets.mixkit.co/music/preview/mixkit-hip-hop-02-738.mp3",
+        "https://assets.mixkit.co/music/preview/mixkit-driving-ambition-32.mp3",
+        "https://assets.mixkit.co/music/preview/mixkit-serene-view-443.mp3",
+        "https://assets.mixkit.co/music/preview/mixkit-deep-urban-623.mp3",
     ]
+    random.shuffle(urls)
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    }
+
     for url in urls:
         try:
-            r = requests.get(url, timeout=15, headers={"User-Agent": "Mozilla/5.0"})
+            r = requests.get(url, timeout=15, headers=headers, allow_redirects=True)
             if r.status_code == 200 and len(r.content) > 30000:
                 with open("music.mp3", "wb") as f:
                     f.write(r.content)
-                print("Müzik indirildi")
+                print(f"Müzik indirildi ({len(r.content)} byte)")
                 return "music.mp3"
         except Exception as e:
-            print(f"Müzik indirme hatası: {e}")
+            print(f"Müzik denemesi başarısız: {e}")
             continue
 
-    print("Müzik bulunamadı")
+    print("Hiç müzik indirilemedi, sessiz devam")
     return None
 
 def download_images(topic, count=16):
@@ -487,7 +497,6 @@ def create_video(script, audio_file, images, topic, word_timings, output="video.
     if music_path and os.path.exists(music_path):
         try:
             music = AudioFileClip(music_path)
-            # Videodan kısa ise uzat
             if music.duration < duration:
                 from moviepy import concatenate_audioclips
                 times = int(duration / music.duration) + 1
