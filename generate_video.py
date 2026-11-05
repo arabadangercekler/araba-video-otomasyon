@@ -49,7 +49,8 @@ Bu videoyu hemen babana gönder de o da öğrensin.
 Turbo motorlar daha çabuk bozulur mu sanıyorsun?
 Sana büyük bir sır vereyim: Turbo’yu bitiren şey motor değil, stop sonrası hemen kapatmak.
 Yağ hâlâ sıcarken pompa durursa turbo yatakları kuru kalır.
-Stop etmeden önce otuz altmış saniye rölantide beklemen yeter.
+Kuru yatak sürtünür, turbo yavaş yavaş bozulmaya başlar, sonra da büyük masraf çıkar.
+Stop etmeden önce otuz altmış saniye rölantide beklemen yeter, yağ biraz soğusun.
 Bunu bilmeyen birine gönder, o da gerçeği öğrensin.
 """,
     "dizel": """
