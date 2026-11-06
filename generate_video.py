@@ -635,29 +635,6 @@ def create_video(script, audio_file, images, topic, word_timings, output="video.
         except Exception as e:
             print(f"Müzik karıştırma hatası: {e}")
 
-    # Konuyla ilgili ses efektleri
-    try:
-        from moviepy import CompositeAudioClip
-        sfx_clips = [audio]
-        for key in pick_sfx_for_script(script):
-            path = download_sfx(key)
-            if path and os.path.exists(path):
-                try:
-                    sfx = AudioFileClip(path).with_volume_scaled(0.11)
-                    if sfx.duration > duration:
-                        sfx = sfx.subclipped(0, duration)
-                    else:
-                        start = max(0, (duration - sfx.duration) / 3)
-                        sfx = sfx.with_start(start)
-                    sfx_clips.append(sfx)
-                    print(f"SFX eklendi: {key}")
-                except Exception as e:
-                    print(f"SFX karıştırma hatası ({key}): {e}")
-        if len(sfx_clips) > 1:
-            audio = CompositeAudioClip(sfx_clips)
-    except Exception as e:
-        print(f"SFX genel hatası: {e}")
-
     valid_images = [img for img in images if is_valid_image(img)]
     if len(valid_images) < 3:
         print("Yeterli geçerli görsel yok!")
