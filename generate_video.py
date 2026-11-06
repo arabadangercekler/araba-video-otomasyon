@@ -204,48 +204,44 @@ Sadece tek satır konu yaz. Başka hiçbir şey yazma.
     return topic
 
 def generate_script(topic):
-    # %95 yedek → genel laf riski çok düşer
-    if random.random() < 0.95:
-        print("Samimi yedek senaryo kullanılıyor")
-        return clean_for_speech(pick_fallback(topic))
-
     try:
         response = model.generate_content(f"""
 Sen Türk YouTube Shorts için samimi bir araba kanalı sunucususun.
 Konu: {topic}
 
-ÖRNEK TARZ:
+ÖRNEK TARZ (buna çok benzeyeceksin):
 "Kışın arabayı dakikalarca boşta ısıtmazsan motorun bozulacağını mı sanıyorsun?
 Sana büyük bir sır vereyim: Bu kural tam otuz yıl önce bitti.
 Eski model, dede arabalarında evet, beklemek gerekiyordu.
 Ama şimdiki arabalar öyle değil.
-...
+Sabah çalıştırıp kapının önünde beklersen motor çok geç ısınır.
+Boş yere benzin yer, parçalar daha çok aşınır.
+Doğrusu basit: çalıştır, kemerini tak, yirmi otuz saniye bekle, yola çık.
+Isınana kadar gaza sonuna kadar basma, sakin sür.
 Bu videoyu hemen babana gönder de o da öğrensin."
 
-KESİN YASAKLAR:
-- vergi, sigorta, bakımlı olursa uzun ömürlü olur, kaliteli yağ, düzenli bakım
-- herkesin bildiği genel tavsiyeler
-- "özetle", "kısaca", "genel olarak"
-
-ZORUNLU:
-1. İlk cümle "sanıyorsun?" ile bitsin
-2. İkinci cümle "Sana büyük bir sır vereyim:" ile başlasın
-3. Somut, az bilinen ama herkesin anlayacağı bilgi
-4. "kilometre" yaz
-5. Son cümle gönder çağrısı
-6. En az 45 saniye. Sadece konuşma metni.
+ZORUNLU KURALLAR:
+1. İlk cümle "sanıyorsun?" ile bitsin.
+2. İkinci cümle "Sana büyük bir sır vereyim:" ile başlasın.
+3. Akış: sorun → neye yol açar → ne yapmalısın.
+4. Genel laf YASAK: vergi, sigorta, kaliteli yağ, düzenli bakım, uzun ömürlü olur, özetle, kısaca.
+5. Somut, az bilinen ama herkesin anlayacağı bilgi ver.
+6. "kilometre" yaz. "kutu" deme.
+7. Son cümle gönder çağrısı olsun (babana gönder / bilmeyen birine gönder).
+8. En az 45-55 saniye sürecek uzunlukta yaz.
+9. Sadece konuşma metni. Başka bir şey yazma.
 """)
         text = response.text.strip()
-        if text and len(text) > 200:
+        if text and len(text) > 220:
             bad = [
                 "kaliteli yağ", "düzenli bakım", "iyi bakarsan", "uzun ömürlü",
                 "bakım yaparsan", "özetle", "kısaca", "genel olarak", "herkes bilir",
                 "vergi", "sigorta", "bakım önemli", "düzenli kontrol"
             ]
             if any(b in text.lower() for b in bad):
-                print("Genel bilgi tespit edildi → yedek")
+                print("Genel bilgi → yedek")
                 return clean_for_speech(pick_fallback(topic))
-            print("Gemini senaryosu kabul edildi")
+            print("Gemini senaryosu kullanılıyor")
             return clean_for_speech(text)
     except Exception as e:
         print(f"Gemini hatası: {e}")
@@ -335,32 +331,28 @@ def download_images(topic, count=16):
     prefer_tag = None
     if "elektrikli" in t or "batarya" in t:
         queries = [
-            "electric car exterior",
-            "electric vehicle charging",
-            "ev charging station car",
-            "electric sedan side",
-            "tesla car exterior",
-            "electric car plug",
-            "modern electric car"
+            "electric car exterior", "electric vehicle charging",
+            "ev charging station car", "electric sedan side",
+            "tesla car exterior", "modern electric car"
         ]
         prefer_tag = "electric"
-    elif "dizel" in t:
-        queries = ["diesel car", "car engine bay", "sedan car"]
-    elif "otomatik" in t:
-        queries = ["automatic gear shifter car", "car gear lever", "car interior"]
+    elif "dizel" in t or "partikül" in t:
+        queries = ["diesel car exterior", "diesel sedan", "car engine bay diesel", "modern diesel car"]
+    elif "otomatik" in t or "vites" in t or "şanzıman" in t:
+        queries = ["automatic gear shifter car", "car gear lever", "automatic transmission car", "car interior console"]
     elif "turbo" in t:
-        queries = ["car turbo engine", "car engine closeup", "engine bay"]
+        queries = ["car turbocharger", "turbo engine car", "turbocharger close up", "car engine turbo"]
     elif "bmw" in t:
-        queries = ["BMW sedan", "BMW 3 series", "BMW 5 series", "BMW car exterior"]
+        queries = ["BMW sedan exterior", "BMW 3 series", "BMW 5 series", "BMW car side"]
         prefer_tag = "bmw"
     elif "oktan" in t or "benzin" in t:
-        queries = ["car gas station", "fuel pump car", "petrol station car"]
-    elif "yeni araba" in t:
-        queries = ["new sedan car", "modern car exterior", "new car"]
-    elif "kışın" in t or "isıtmadan" in t:
-        queries = ["car in snow", "snow covered car", "car winter", "sedan snow"]
+        queries = ["car at gas station", "fuel pump car", "petrol station car", "car refueling"]
+    elif "yeni araba" in t or "sıfır" in t:
+        queries = ["new car dealership", "new sedan car", "modern car exterior", "brand new car"]
+    elif "kışın" in t or "isıtmadan" in t or "ısıt" in t or "kar" in t:
+        queries = ["car in snow", "snow covered car", "car winter road", "sedan in snow"]
     else:
-        queries = ["sedan car exterior", "modern car", "car side view"]
+        queries = ["sedan car exterior", "modern car side view", "car on road", "automobile exterior"]
 
     exclude = [
         "people", "person", "man", "woman", "portrait", "child", "kid", "baby",
