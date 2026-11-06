@@ -3,7 +3,7 @@ name: Otomatik Video Üret
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 10 * * 1,4'
+    - cron: '0 10 * * 1,3,5,0'
 
 jobs:
   uret:
