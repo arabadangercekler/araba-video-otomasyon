@@ -325,6 +325,62 @@ def create_background_music(duration, filename="music.mp3"):
         print(f"Müzik üretim hatası: {e}")
         return None
 
+def download_sfx(keyword):
+    """Kelimeye göre kısa ses efekti indirmeyi dener."""
+    library = {
+        "turbo": [
+            "https://assets.mixkit.co/active_storage/sfx/2515/2515-preview.mp3",
+        ],
+        "motor": [
+            "https://assets.mixkit.co/active_storage/sfx/2515/2515-preview.mp3",
+        ],
+        "elektrikli": [
+            "https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3",
+        ],
+        "batarya": [
+            "https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3",
+        ],
+        "kar": [
+            "https://assets.mixkit.co/active_storage/sfx/1210/1210-preview.mp3",
+        ],
+        "kışın": [
+            "https://assets.mixkit.co/active_storage/sfx/1210/1210-preview.mp3",
+        ],
+        "benzin": [
+            "https://assets.mixkit.co/active_storage/sfx/2515/2515-preview.mp3",
+        ],
+    }
+    urls = library.get(keyword, [])
+    headers = {"User-Agent": "Mozilla/5.0"}
+    for url in urls:
+        try:
+            r = requests.get(url, timeout=12, headers=headers)
+            if r.status_code == 200 and len(r.content) > 3000:
+                fname = f"sfx_{keyword}.mp3"
+                with open(fname, "wb") as f:
+                    f.write(r.content)
+                print(f"SFX indirildi: {keyword}")
+                return fname
+        except Exception as e:
+            print(f"SFX hatası ({keyword}): {e}")
+    return None
+
+def pick_sfx_for_script(script):
+    """Script içinden uygun efekt anahtarlarını seç."""
+    s = script.lower()
+    keys = []
+    if "turbo" in s:
+        keys.append("turbo")
+    if "elektrikli" in s or "batarya" in s:
+        keys.append("elektrikli")
+    if "kışın" in s or "kar" in s or "ısıt" in s:
+        keys.append("kışın")
+    if "motor" in s and "turbo" not in keys:
+        keys.append("motor")
+    if "benzin" in s or "oktan" in s:
+        keys.append("benzin")
+    return keys[:2]
+
 def download_images(topic, count=16):
     images = []
     t = topic.lower()
@@ -578,6 +634,29 @@ def create_video(script, audio_file, images, topic, word_timings, output="video.
             print("Arka plan müziği eklendi")
         except Exception as e:
             print(f"Müzik karıştırma hatası: {e}")
+
+    # Konuyla ilgili ses efektleri
+    try:
+        from moviepy import CompositeAudioClip
+        sfx_clips = [audio]
+        for key in pick_sfx_for_script(script):
+            path = download_sfx(key)
+            if path and os.path.exists(path):
+                try:
+                    sfx = AudioFileClip(path).with_volume_scaled(0.11)
+                    if sfx.duration > duration:
+                        sfx = sfx.subclipped(0, duration)
+                    else:
+                        start = max(0, (duration - sfx.duration) / 3)
+                        sfx = sfx.with_start(start)
+                    sfx_clips.append(sfx)
+                    print(f"SFX eklendi: {key}")
+                except Exception as e:
+                    print(f"SFX karıştırma hatası ({key}): {e}")
+        if len(sfx_clips) > 1:
+            audio = CompositeAudioClip(sfx_clips)
+    except Exception as e:
+        print(f"SFX genel hatası: {e}")
 
     valid_images = [img for img in images if is_valid_image(img)]
     if len(valid_images) < 3:
