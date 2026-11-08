@@ -155,6 +155,8 @@ def generate_topic():
 Türkçe araba YouTube Shorts kanalı için YENİ bir konu üret.
 
 Kurallar:
+- YouTube'da herkesin yaptığı klasik videoları birebir tekrar etme
+- Orijinal bir açı veya az işlenmiş bir nokta seç
 - Sadece araba ile ilgili olsun
 - Az bilinen veya yanlış bilinen bir şey olsun
 - Genel bilgiler olmasın
@@ -235,6 +237,8 @@ ZORUNLU KURALLAR:
 7. Son cümle gönder çağrısı olsun (babana gönder / bilmeyen birine gönder).
 8. {"En az 2-3 dakika sürecek, daha detaylı anlat. Somut örnekler ver, adım adım açıkla." if FORMAT == "long" else "En az 45-55 saniye sürecek uzunlukta yaz."}
 9. Sadece konuşma metni. Başka bir şey yazma.
+10. YouTube'da sıkça görülen hazır videoları taklit etme. Aynı cümleleri, aynı örnekleri kopyalama.
+11. Kendi orijinal açını, kendi örneklerini kullan. Ezber viral kalıplardan kaçın.
 """)
         text = response.text.strip()
         if text and len(text) > 220:
