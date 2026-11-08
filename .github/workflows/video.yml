@@ -27,8 +27,10 @@ jobs:
 
       - name: Video üret
         env:
+          env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+          FORMAT: short
         run: python generate_video.py
 
       - name: Videoyu kaydet
