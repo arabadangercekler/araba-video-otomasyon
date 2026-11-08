@@ -1,0 +1,53 @@
+name: Yatay Video Uret
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 11 * * 2,6'
+
+jobs:
+  uret:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Repo'yu indir
+        uses: actions/checkout@v4
+
+      - name: Python kur
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Gerekli paketleri yukle
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-dejavu
+          pip install moviepy edge-tts google-generativeai requests pillow numpy imageio imageio-ffmpeg
+
+      - name: Video uret
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+          FORMAT: long
+        run: python generate_video.py
+
+      - name: Videoyu kaydet
+        uses: actions/upload-artifact@v4
+        with:
+          name: video-yatay
+          path: video.mp4
+
+      - name: Kullanilan konuları kaydet
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          touch used_topics.txt
+          git add used_topics.txt
+          if git diff --staged --quiet; then
+            echo "Yeni konu yok"
+          else
+            git commit -m "used_topics guncellendi"
+            git push
+          fi
