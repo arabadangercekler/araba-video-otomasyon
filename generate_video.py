@@ -594,11 +594,11 @@ def create_hook(topic, duration=5.5):
     return ImageClip(arr).with_duration(duration).with_position(pos)
 
 def create_subtitles(script, total_duration, word_timings):
+    sub_y = 820 if FORMAT == "long" else 980
     sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script) if len(s.strip()) > 2]
     if not sentences:
         sentences = [script]
     clips = []
-    sub_y = 820 if FORMAT == "long" else 980
     if word_timings and len(word_timings) > 3:
         idx = 0
         for i, s in enumerate(sentences):
@@ -616,9 +616,19 @@ def create_subtitles(script, total_duration, word_timings):
                 dur = max(total_duration - start, 1.5)
             words = s.split()
             display = s if len(words) <= 6 else " ".join(words[:len(words)//2]) + "\n" + " ".join(words[len(words)//2:])
-            txt = TextClip(text=display, font_size=26, color="white", stroke_color="black", stroke_width=5, method="caption", size=(780, None), font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")
-            clips.append(txt.with_start(start).with_duration(dur).with_position(("center", sub_y))
+            txt = TextClip(
+                text=display,
+                font_size=26,
+                color="white",
+                stroke_color="black",
+                stroke_width=5,
+                method="caption",
+                size=(780 if FORMAT != "long" else 1400, None),
+                font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+            )
+            clips.append(txt.with_start(start).with_duration(dur).with_position(("center", sub_y)))
         return clips
+
     total_chars = sum(len(s) for s in sentences) or 1
     current = 0.0
     for i, s in enumerate(sentences):
@@ -627,8 +637,17 @@ def create_subtitles(script, total_duration, word_timings):
             dur = max(total_duration - current, 1.5)
         words = s.split()
         display = s if len(words) <= 6 else " ".join(words[:len(words)//2]) + "\n" + " ".join(words[len(words)//2:])
-        txt = TextClip(text=display, font_size=26, color="white", stroke_color="black", stroke_width=5, method="caption", size=(780, None), font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")
-        clips.append(txt.with_start(current).with_duration(dur).with_position(("center", sub_y))
+        txt = TextClip(
+            text=display,
+            font_size=26,
+            color="white",
+            stroke_color="black",
+            stroke_width=5,
+            method="caption",
+            size=(780 if FORMAT != "long" else 1400, None),
+            font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+        )
+        clips.append(txt.with_start(current).with_duration(dur).with_position(("center", sub_y)))
         current += dur
     return clips
 
