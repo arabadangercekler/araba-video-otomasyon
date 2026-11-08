@@ -18,7 +18,12 @@ genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 PIXABAY_KEY = os.environ["PIXABAY_API_KEY"]
 MODEL_NAME = "gemini-3.8-flash"
 VOICE = "tr-TR-EmelNeural"
-W, H = 1080, 1920
+FORMAT = os.environ.get("FORMAT", "short").lower()
+
+if FORMAT == "long":
+    W, H = 1920, 1080
+else:
+    W, H = 1080, 1920
 
 model = genai.GenerativeModel(MODEL_NAME)
 
@@ -228,7 +233,7 @@ ZORUNLU KURALLAR:
 5. Somut, az bilinen ama herkesin anlayacağı bilgi ver.
 6. "kilometre" yaz. "kutu" deme.
 7. Son cümle gönder çağrısı olsun (babana gönder / bilmeyen birine gönder).
-8. En az 45-55 saniye sürecek uzunlukta yaz.
+8. {"En az 2-3 dakika sürecek, daha detaylı anlat. Somut örnekler ver, adım adım açıkla." if FORMAT == "long" else "En az 45-55 saniye sürecek uzunlukta yaz."}
 9. Sadece konuşma metni. Başka bir şey yazma.
 """)
         text = response.text.strip()
@@ -578,7 +583,11 @@ def create_hook(topic, duration=5.5):
         draw.text((x, y), line, font=font, fill=(255, 255, 255, 255))
         y += heights[i] + 10
     arr = np.array(img)
-    return ImageClip(arr).with_duration(duration).with_position((40, 280))
+    if FORMAT == "long":
+        pos = ("center", 80)
+    else:
+        pos = (40, 280)
+    return ImageClip(arr).with_duration(duration).with_position(pos)
 
 def create_subtitles(script, total_duration, word_timings):
     sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', script) if len(s.strip()) > 2]
@@ -603,7 +612,8 @@ def create_subtitles(script, total_duration, word_timings):
             words = s.split()
             display = s if len(words) <= 6 else " ".join(words[:len(words)//2]) + "\n" + " ".join(words[len(words)//2:])
             txt = TextClip(text=display, font_size=26, color="white", stroke_color="black", stroke_width=5, method="caption", size=(780, None), font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")
-            clips.append(txt.with_start(start).with_duration(dur).with_position(("center", 980)))
+   sub_y = 820 if FORMAT == "long" else 980
+            clips.append(txt.with_start(start).with_duration(dur).with_position(("center", sub_y))
         return clips
     total_chars = sum(len(s) for s in sentences) or 1
     current = 0.0
@@ -614,7 +624,7 @@ def create_subtitles(script, total_duration, word_timings):
         words = s.split()
         display = s if len(words) <= 6 else " ".join(words[:len(words)//2]) + "\n" + " ".join(words[len(words)//2:])
         txt = TextClip(text=display, font_size=26, color="white", stroke_color="black", stroke_width=5, method="caption", size=(780, None), font="/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")
-        clips.append(txt.with_start(current).with_duration(dur).with_position(("center", 980)))
+        clips.append(txt.with_start(current).with_duration(dur).with_position(("center", sub_y))
         current += dur
     return clips
 
