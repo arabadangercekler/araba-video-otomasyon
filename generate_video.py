@@ -710,6 +710,90 @@ def create_video(script, audio_file, images, topic, word_timings, output="video.
     print("Bitti")
     return output
 
+def make_youtube_title(topic, script):
+    # Basit, tıklanabilir başlık
+    t = topic.strip()
+    if not t.endswith("?"):
+        t = t.rstrip(".") + "?"
+    if len(t) > 90:
+        t = t[:87] + "..."
+    return t
+
+def upload_to_youtube(video_path, topic, script, is_short=True):
+    """Videoyu YouTube'a yükler. Başarısız olursa hata basar, sistemi kırmaz."""
+    try:
+        from google.oauth2.credentials import Credentials
+        from google.auth.transport.requests import Request
+        from googleapiclient.discovery import build
+        from googleapiclient.http import MediaFileUpload
+
+        client_id = os.environ.get("YOUTUBE_CLIENT_ID")
+        client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET")
+        refresh_token = os.environ.get("YOUTUBE_REFRESH_TOKEN")
+
+        if not all([client_id, client_secret, refresh_token]):
+            print("YouTube secret eksik, yükleme atlandı")
+            return
+
+        if not os.path.exists(video_path):
+            print("Video dosyası yok, yükleme atlandı")
+            return
+
+        creds = Credentials(
+            token=None,
+            refresh_token=refresh_token,
+            token_uri="https://oauth2.googleapis.com/token",
+            client_id=client_id,
+            client_secret=client_secret,
+            scopes=["https://www.googleapis.com/auth/youtube.upload"]
+        )
+        creds.refresh(Request())
+
+        youtube = build("youtube", "v3", credentials=creds)
+
+        title = make_youtube_title(topic, script)
+        description = (
+            f"{script[:500]}\n\n"
+            f"#araba #otomobil #arabadangercekler"
+        )
+        tags = ["araba", "otomobil", "araba bilgileri", "arabadan gerçekler"]
+
+        body = {
+            "snippet": {
+                "title": title,
+                "description": description,
+                "tags": tags,
+                "categoryId": "2"  # Autos & Vehicles
+            },
+            "status": {
+                "privacyStatus": "public",  # istersen "private" veya "unlisted"
+                "selfDeclaredMadeForKids": False
+            }
+        }
+
+        if is_short:
+            # Shorts için dikey video; YouTube genelde #Shorts ile tanır
+            body["snippet"]["title"] = title[:90]
+            if "#Shorts" not in body["snippet"]["description"]:
+                body["snippet"]["description"] = "#Shorts\n\n" + body["snippet"]["description"]
+
+        media = MediaFileUpload(video_path, mimetype="video/mp4", resumable=True)
+        request = youtube.videos().insert(part="snippet,status", body=body, media_body=media)
+
+        print("YouTube'a yükleniyor...")
+        response = None
+        while response is None:
+            status, response = request.next_chunk()
+            if status:
+                print(f"Yükleme: {int(status.progress() * 100)}%")
+
+        video_id = response.get("id")
+        print(f"YouTube yükleme tamam: https://youtu.be/{video_id}")
+        return video_id
+    except Exception as e:
+        print(f"YouTube yükleme hatası: {e}")
+        return None
+
 def main():
     topic = generate_topic()
     print(f"Konu: {topic}")
@@ -725,6 +809,8 @@ def main():
         return
     print("4. Video...")
     create_video(script, "ses.mp3", images, topic, word_timings)
+    is_short = FORMAT != "long"
+    upload_to_youtube("video.mp4", topic, script, is_short=is_short)
 
 if __name__ == "__main__":
     main()
