@@ -23,7 +23,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg fonts-dejavu
-          pip install moviepy edge-tts google-generativeai requests pillow numpy imageio imageio-ffmpeg
+          pip install moviepy edge-tts google-generativeai requests pillow numpy imageio imageio-ffmpeg google-api-python-client google-auth google-auth-oauthlib
 
       - name: Video üret
         env:
