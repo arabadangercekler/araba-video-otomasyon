@@ -22,3 +22,4 @@ Yağmurlu havada hız sabitleyici (Cruise Control) kullanmanın arabayı yoldan 
 Araba mitleri özel konu 22
 Araba mitleri özel konu 23
 Sert frenden hemen sonra durup ayağı frende basılı tutmanın diskleri yamulttuğu gerçeği
+Akü takviyesi yaparken eksi kablosunu doğrudan akü kutbuna bağlamanın patlama riski yaratması gerçeği
